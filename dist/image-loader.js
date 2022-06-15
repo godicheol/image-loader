@@ -4,16 +4,18 @@
     var __exports = {};
     var __privates = {};
     var __images = [];
-
-    var __statusCodes = {
-        0: "unloaded",
-        1: "onload",
-        2: "loaded",
-        9: "error",
-    }
+    var __queues = [];
 
     __privates.isBlob = function(blob) {
         return blob instanceof Blob;
+    }
+
+    __privates.isNode = function(element) {
+        return (typeof(Node) === "object" ? (element instanceof Node) : typeof(element) === "object" && element !== null && typeof(element.nodeType) === "number" && typeof(element.nodeName) === "string");
+    }
+      
+    __privates.isElement = function(element) {
+        return (typeof(HTMLElement === "object") ? (element instanceof HTMLElement) : typeof(element) === "object" && element !== null  && element.nodeType === 1 && typeof(element.nodeName) === "string");
     }
 
     __privates.getImage = function(query, ref) {
@@ -102,7 +104,6 @@
         var getImage = __privates.getImage;
         var mx = 128;
         var i = 0;
-
         var getUID = function() {
             var id = ("0000" + ((Math.random() * Math.pow(36, 4)) | 0).toString(36)).slice(-4);
             var image = getImage({id: id}, true);
@@ -115,7 +116,6 @@
                 return undefined;
             }
         }
-
         return getUID();
     }
 
@@ -144,36 +144,16 @@
         image.load = function(cb) {
             return __exports.loadOne({id: this.id}, cb);
         }
+        image.set = function(element) {
+            return __exports.setOne({id: this.id}, element);
+        }
     }
 
     __privates.removeMethods = function(image) {
         image.remove = null;
         image.load = null;
+        image.set = null;
         return true;
-    }
-
-    __exports.getOne = function(query) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var getImage = __privates.getImage;
-        var image = getImage(query, false);
-        
-        if (typeof(image) === "undefined") {
-            return undefined;
-        }
-
-        return image;
-    }
-
-    __exports.getMany = function(query) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var getImages = __privates.getImages;
-        var images = getImages(query, false);
-
-        return images;
     }
 
     __exports.addOne = function(blob) {
@@ -192,12 +172,11 @@
 
         newImage.id = generateUID();
         newImage.index = __images.length;
-        newImage.status = 0; // unloaded
+        newImage.elements = [];
         newImage.url = createObjectURL(blob);
         newImage.nextSibling = null;
         newImage.prevSibling = null;
         newImage.createdAt = new Date().getTime();
-        newImage.loadedAt = null;
         setSiblings(newImage);
         setMethods(newImage);
         __images.push(newImage);
@@ -213,28 +192,119 @@
         var copyObject = __privates.copyObject;
         var isBlob = __privates.isBlob;
         var len = blobs.length;
+        var hasError = false;
         var output = [];
         var i;
 
         for (i = 0; i < len; i++) {
-            if (isBlob(blobs[i])) {
-                var newImage = {};
-                newImage.id = generateUID();
-                newImage.index = __images.length;
-                newImage.status = 0; // unloaded
-                newImage.url = createObjectURL(blobs[i]);
-                newImage.nextSibling = null;
-                newImage.prevSibling = null;
-                newImage.createdAt = new Date().getTime();
-                newImage.loadedAt = null;
-                newImage.error = null;
-                setSiblings(newImage);
-                setMethods(newImage);
-                __images.push(newImage);
-                output.push(copyObject(newImage));
+            if (!isBlob(blobs[i])) {
+                hasError = true;
+                break;
             }
         }
+        if (hasError) {
+            return false;
+        }
+        for (i = 0; i < len; i++) {
+            var newImage = {};
+            newImage.id = generateUID();
+            newImage.index = __images.length;
+            newImage.elements = [];
+            newImage.url = createObjectURL(blobs[i]);
+            newImage.nextSibling = null;
+            newImage.prevSibling = null;
+            newImage.createdAt = new Date().getTime();
+            setSiblings(newImage);
+            setMethods(newImage);
+            __images.push(newImage);
+            output.push(copyObject(newImage));
+        }
         return output;
+    }
+
+    __exports.getOne = function(query) {
+        if (typeof(query) === "undefined") {
+            query = {};
+        }
+        var getImage = __privates.getImage;
+        var image = getImage(query);
+        return image;
+    }
+
+    __exports.getMany = function(query) {
+        if (typeof(query) === "undefined") {
+            query = {};
+        }
+        var getImages = __privates.getImages;
+        var images = getImages(query);
+        return images;
+    }
+
+    __exports.setOne = function(query, element) {
+        if (typeof(query) === "undefined") {
+            query = {};
+        }
+        var isElement = __privates.isElement;
+        var isNode = __privates.isNode;
+        var getImage = __privates.getImage;
+        var image = getImage(query, true);
+        var hasError = false;
+        var len;
+        var i;
+
+        if ((typeof(image) === "undefined") || !isElement(element) || !isNode(element)) {
+            return false;
+        }
+        len = image.elements.length;
+        for (i = 0; i < len; i++) {
+            if (image.elements[i].isSameNode(element)) {
+                hasError = true;
+                break;
+            }
+        }
+        if (hasError) {
+            return false;
+        }
+        image.elements.push(element);
+        return true;
+    }
+
+    __exports.setMany = function(query, element) {
+        if (typeof(query) === "undefined") {
+            query = {};
+        }
+        var isElement = __privates.isElement;
+        var isNode = __privates.isNode;
+        var getImages = __privates.getImages;
+        var images = getImages(query, true);
+        var len = images.length;
+        var elemLen;
+        var hasError = false;
+        var i;
+        var j;
+        
+        if (!isElement(element) || !isNode(element)) {
+            return false;
+        }
+        for (i = 0; i < len; i++) {
+            elemLen = images[i].elements.length;
+            for (j = 0; j < elemLen; j++) {
+                if (images[i].elements[j].isSameNode(element)) {
+                    hasError = true;
+                    break;
+                }
+            }
+            if (hasError) {
+                break;
+            }
+        }
+        if (hasError) {
+            return false;
+        }
+        for (i = 0; i < len; i++) {
+            images[i].elements.push(element);
+        }
+        return true;
     }
 
     __exports.removeOne = function(query) {
@@ -274,29 +344,42 @@
         if (typeof(query) === "undefined") {
             query = {};
         }
+        var copyObject = __privates.copyObject;
         var getImage = __privates.getImage;
         var image = getImage(query, true);
+        var output;
 
         if (typeof(image) === "undefined") {
             return cb(new Error("Image not found"));
         }
 
-        var img = new Image();
-        img.onload = function() {
-            image.status = 1;
-            return cb(null, img.src);
+        if (image.status === 0) {
+            var img = new Image();
+            img.onload = function() {
+                image.status = 1;
+                output = copyObject(image);
+                return cb(null, output);
+            }
+            img.onerror = function() {
+                image.status = 9;
+                return cb(new Error("Load error"));
+            }
+            img.src = image.url;
+            return cb(null, image);
+        } else if (image.status === 1) {
+            output = copyObject(image);
+            return cb(null, output);
+        } else if (image.stutus === 2) {
+            output = copyObject(image);
+            return cb(null, output);
         }
-        img.onerror = function() {
-            image.status = 9;
-            return cb(new Error("Load error"));
-        }
-        img.src = image.url;
     }
 
     __exports.loadMany = function(query, cb) {
         if (typeof(query) === "undefined") {
             query = {};
         }
+        var copyObject = __privates.copyObject;
         var getImages = __privates.getImages;
         var images = getImages(query, true);
         var output = [];
@@ -310,7 +393,7 @@
                 var img = new Image();
                 img.onload = function() {
                     x.status = 1;
-                    output.push(img.src);
+                    output.push(copyObject(x));
                     c++;
                     fn();
                 }

@@ -7,7 +7,7 @@
     <title>image-loader</title>
     <style>
         .border{margin: 1rem 0; border-bottom: 1px solid;}
-        .image{display: inline; width: 64px; height: 64px; object-fit: cover;}
+        .image{display: inline; width: 256px; height: auto;}
     </style>
 </head>
 
@@ -16,49 +16,104 @@
 
     <input id="file-1" type="file" multiple>
     <button id="button-1">Load</button>
-    <button id="button-2">Render</button>
 
     <div class="border"></div>
 
     <div id="result-1"></div>
 
+    <div class="border"></div>
+
+    <div id="result-2"></div>
+
+    <div style="margin-top: 1rem;">
+        <button id="prev-1" style="margin-left: 1rem;">Prev</button>
+        <div style="display: inline;">
+            <span id="current-1">0</span>    
+            /
+            <span id="total-1">0</span>
+        </div>
+        <button id="next-1">Next</button>
+    </div>
+    
+
     <script src="dist/image-loader.js"></script>
     <script>
-        var loaded;
+        var rendered = false;
+        var currImage;
+
+        function renderImage(image) {
+            if (currImage) {
+                currImage.elements[0].style.display = "none";
+            }
+
+            currImage = image;
+            image.elements[0].style.display = "";
+            document.getElementById("current-1").innerHTML = currImage.index + 1;
+            console.log("id("+currImage.id+ ") image rendered");
+        }
 
         document.getElementById("file-1").addEventListener("change", function(e) {
             var files = e.target.files;
             var images = imageLoader.addMany(files);
-            console.log(images);
+            var prefix = "il-";
+            var html = "";
+            for (var i = 0; i < images.length; i++) {
+                var id = prefix + images[i].id;
+                html += "<img class='image' style='display: none;' id='"+id+"'>";
+            }
+
+            document.getElementById("result-2").innerHTML = html;
+
+            for (var i = 0; i < images.length; i++) {
+                var id = prefix + images[i].id;
+                images[i].set(document.getElementById(id));
+            }
+
+            var images2 = imageLoader.getMany();
+            document.getElementById("total-1").innerHTML = images2.length;
+            document.getElementById("result-1").innerHTML = images2.length + " images loaded.";
+            console.log(images2.length + " images added.");
         });
 
         document.getElementById("button-1").addEventListener("click", function(e) {
-            loaded = [];
-            imageLoader.loadMany({}, function(err, res) {
-                if (err) {
-                    console.error(err);
-                    return false;
-                }
-                loaded = res;
-                alert(loaded.length + " images loaded");
-                console.log(loaded.length + " images loaded");
-            });
+            var images = imageLoader.getMany();
+
+            for (var i = 0; i < images.length; i++) {
+                (function(image) {
+                    for (var j = 0; j < image.elements.length; j++) {
+                        image.elements[j].onload = function() {
+                            if (image.index === 0) {
+                                renderImage(image);
+                                rendered = true;
+                            }
+                        }
+                        image.elements[j].onerror = function() {
+                            console.log(image, "error");
+                        }
+                        image.elements[j].src = image.url;
+                    }
+                })(images[i])
+            }
         });
 
-        document.getElementById("button-2").addEventListener("click", function(e) {
-            var len = loaded.length;
-            var i;
-            var x;
-            var html = "";
+        document.getElementById("prev-1").addEventListener("click", function(e) {
+            var image = currImage;
 
-            for (i = 0; i < len; i++) {
-                x = loaded[i];
-                html += "<img class='image' src='"+x+"'>";
+            if (!image || !image.prevSibling) {
+                return false;
             }
-            document.getElementById("result-1").innerHTML = html;
+
+            renderImage(image.prevSibling);
+        });
+
+        document.getElementById("next-1").addEventListener("click", function(e) {
+            var image = currImage;
+
+            if (!image || !image.nextSibling) {
+                return false;
+            }
             
-            alert(loaded.length + " images rendered");
-            console.log(loaded.length + " images rendered");
+            renderImage(image.nextSibling);
         });
     </script>
 </body>
