@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image-loader</title>
+    <style>
+        .border{margin: 1rem 0; border-bottom: 1px solid;}
+        .image{display: inline; width: 64px; height: 64px; object-fit: cover;}
+    </style>
+</head>
+
+<body>
+    <h1>image-loader</h1>
+
+    <input id="file-1" type="file" multiple>
+    <button id="button-1">Load</button>
+    <button id="button-2">Render</button>
+
+    <div class="border"></div>
+
+    <div id="result-1"></div>
+
+    <script src="dist/image-loader.js"></script>
+    <script>
+        var loaded;
+
+        document.getElementById("file-1").addEventListener("change", function(e) {
+            var files = e.target.files;
+            var images = imageLoader.addMany(files);
+            console.log(images);
+        });
+
+        document.getElementById("button-1").addEventListener("click", function(e) {
+            loaded = [];
+            imageLoader.loadMany({}, function(err, res) {
+                if (err) {
+                    console.error(err);
+                    return false;
+                }
+                loaded = res;
+                alert(loaded.length + " images loaded");
+                console.log(loaded.length + " images loaded");
+            });
+        });
+
+        document.getElementById("button-2").addEventListener("click", function(e) {
+            var len = loaded.length;
+            var i;
+            var x;
+            var html = "";
+
+            for (i = 0; i < len; i++) {
+                x = loaded[i];
+                html += "<img class='image' src='"+x+"'>";
+            }
+            document.getElementById("result-1").innerHTML = html;
+            
+            alert(loaded.length + " images rendered");
+            console.log(loaded.length + " images rendered");
+        });
+    </script>
+</body>
+
+</html>
