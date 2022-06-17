@@ -1,93 +1,462 @@
 (function() {
-    'use strict';
+    'use strict'
 
     var __exports = {};
-    var __privates = {};
-    var __images = [];
+    var __methods = {};
+    var __instances = [];
+    var __events = {};
     var __queues = [];
 
-    __privates.isBlob = function(blob) {
-        return blob instanceof Blob;
+    var __schema = {
+        id: "string",
+        index: "number",
+        name: "string",
+        size: "number",
+        type: "string",
+        width: "number",
+        height: "number",
+        naturalWidth: "number",
+        naturalHeight: "number",
+        element: "element",
+        blob: "blob",
+        url: "string",
+        match: "function",
+        find: "function",
+        set: "function",
+        check: "function",
+        load: "function",
+        copy: "function",
+        remove: "function",
+        prevSibling: "img",
+        nextSibling: "img",
+        createdAt: "number",
+        loadedAt: "number",
     }
 
-    __privates.isNode = function(element) {
-        return (typeof(Node) === "object" ? (element instanceof Node) : typeof(element) === "object" && element !== null && typeof(element.nodeType) === "number" && typeof(element.nodeName) === "string");
+    function Img(arg) {
+        var generateUID = __methods.generateUID;
+        var checkType = __methods.checkType;
+        var isUndefined = __methods.isUndefined;
+        var isNull = __methods.isNull;
+        var isString = __methods.isString;
+        var isNumber = __methods.isNumber;
+        var isNumeric = __methods.isNumeric;
+        var isObject = __methods.isObject;
+        var isArray = __methods.isArray;
+        var isBlob = __methods.isBlob;
+        var isNode = __methods.isNode;
+        var isElement = __methods.isElement;
+        var isFunction = __methods.isFunction;
+        var isDate = __methods.isDate;
+        var isImg = __methods.isImg;
+        var isOperator = __methods.isOperator;
+        var calcQuery = __methods.calcQuery;
+        var createURL = URL.createObjectURL;
+        var revokeURL = URL.revokeObjectURL;
+
+        // check argument
+        if (!isObject(arg)) {
+            arg = {};
+        }
+
+        // set value
+        this.index = __instances.length;
+        this.id = generateUID();
+        this.element = arg.element;
+        this.blob = arg.blob;
+        this.prevSibling = __instances[this.index - 1];
+        this.nextSibling = __instances[this.index + 1];
+        this.createdAt = new Date().getTime();
+        if (this.blob) {
+            this.name = this.blob.name;
+            this.size = this.blob.size;
+            this.type = this.blob.type;
+        }
+
+        // set methods
+        this.match = function(query) {
+            if (!isObject(query)) {
+                query = {};
+            }
+            return calcQuery(this, query);
+        }
+        this.set = function(arg) {
+            if (!isObject(arg)) {
+                throw new Error("Img.set() argument must be Object");
+            }
+            var schema = __schema;
+            var keys = Object.keys(schema);
+            var argKeys = Object.keys(arg);
+            var argLen = argKeys.length;
+            var i, k;
+            for (i = 0; i < argLen; i++) {
+                k = argKeys[i];
+                if (keys.indexOf(k) > -1) {
+                    this[k] = arg[k];
+                }
+            }
+            this.check();
+        }
+        this.check = function() {
+            var schema = __schema;
+            var k = Object.keys(this);
+            var len = k.length;
+            var i;
+            for (i = 0; i < len; i++) {
+                if (!checkType(this[k[i]], schema[k[i]])) {
+                    delete this[k[i]];
+                }
+            }
+            return true;
+        }
+        this.load = function(cb) {
+            var img = this;
+            var element = this.element;
+            
+            if (isUndefined(this.element)) {
+                if (isFunction(cb)) {
+                    return cb(new Error("Img.element not found"));
+                }
+            }
+            if (isUndefined(this.url)) {
+                if (isFunction(cb)) {
+                    return cb(new Error("Img.url not found"));
+                }
+            }
+            if (!isUndefined(this.loadedAt)) {
+                if (isFunction(cb)) {
+                    return cb(new Error("Img was already loaded"));
+                }
+            }
+
+            element.onload = function() {
+                img.loadedAt = new Date().getTime();
+                img.width = element.width;
+                img.height = element.height;
+                img.naturalWidth = element.naturalWidth;
+                img.naturalHeight = element.naturalHeight;
+                if (isFunction(cb)) {
+                    return cb(null, {
+                        complete: element.complete,
+                        src: element.src,
+                        alt: element.alt,
+                        srcset: element.srcset,
+                        x: element.x,
+                        y: element.y,
+                        width: element.width,
+                        height: element.height,
+                        naturalWidth: element.naturalWidth,
+                        naturalHeight: element.naturalHeight,
+                    });
+                }
+            }
+            element.onerror = function() {
+                if (isFunction(cb)) {
+                    return cb(new Error("Img failed to load"));
+                }
+            }
+            element.src = img.url;
+        }
+        this.remove = function() {
+            var id = this.id;
+            var index = this.index;
+            var nextSibling = this.nextSibling;
+            var prevSibling = this.prevSibling;
+
+            // set siblings
+            if (!isUndefined(nextSibling) && !isUndefined(prevSibling)) {
+                nextSibling.prevSibling = prevSibling;
+                prevSibling.nextSibling = nextSibling;
+            } else if (isUndefined(nextSibling) && !isUndefined(prevSibling) && isUndefined(nextSibling.prevSibling)) {
+                delete nextSibling.prevSibling;
+            } else if (!isUndefined(nextSibling) && isUndefined(prevSibling) && isUndefined(prevSibling.nextSibling)) {
+                delete prevSibling.nextSibling;
+            }
+
+            // set index
+
+            // 
+
+            delete this;
+        }
+        this.copy = function() {
+            var schema = __schema;
+            var keys = Object.keys(schema);
+            var len = keys.length;
+            var i;
+            var output = {};
+            for (i = 0; i < len; i++) {
+                if (this.hasOwnProperty(keys[i]) && schema[keys[i]] !== "function") {
+                    output[keys[i]] = this[keys[i]];
+                }
+            }
+            return output;
+        }
+
+        // check values type
+        this.check();
+
+        // convert blob to url
+        if (!isUndefined(this.blob) && isUndefined(this.url)) {
+            this.url = createURL(this.blob);
+        }
+
+        // set sibling
+        if (isImg(this.prevSibling)) {
+            this.prevSibling.nextSibling = this;
+        }
+        if (isImg(this.nextSibling)) {
+            this.nextSibling.prevSibling = this;
+        }
+
+        // insert to array
+        __instances.push(this);
+    }
+
+    __methods.generateUID = function() {
+        return ("0000" + ((Math.random() * Math.pow(36, 4)) | 0).toString(36)).slice(-4);
+    }
+
+    __methods.isUndefined = function(arg) {
+        return typeof(arg) === "undefined";
+    }
+
+    __methods.isNull = function(arg) {
+        return arg === null;
+    }
+
+    __methods.isBoolean = function(arg) {
+        return (arg === true || arg === false);
+    }
+
+    __methods.isString = function(arg) {
+        return typeof(arg) === "string";
+    }
+
+    __methods.isNumber = function(arg) {
+        return typeof(arg) === "number";
+    }
+
+    __methods.isNumeric = function(arg) {
+        return (typeof(arg) === "string") && !isNaN(parseFloat(arg)) && isFinite(arg);
+    }
+
+    __methods.isObject = function(arg) {
+        return (typeof(arg) === "object" && arg !== null);
+    }
+
+    __methods.isFunction = function(arg) {
+        return typeof(arg) === "function";
+    }
+
+    __methods.isBlob = function(arg) {
+        return (arg instanceof Blob);
+    }
+
+    __methods.isNode = function(arg) {
+        return (typeof(Node) === "object" ? (arg instanceof Node) : typeof(arg) === "object" && arg !== null && typeof(arg.nodeType) === "number" && typeof(arg.nodeName) === "string");
     }
       
-    __privates.isElement = function(element) {
-        return (typeof(HTMLElement === "object") ? (element instanceof HTMLElement) : typeof(element) === "object" && element !== null  && element.nodeType === 1 && typeof(element.nodeName) === "string");
+    __methods.isElement = function(arg) {
+        return (typeof(HTMLElement === "object") ? (arg instanceof HTMLElement) : typeof(arg) === "object" && arg !== null  && arg.nodeType === 1 && typeof(arg.nodeName) === "string");
     }
 
-    __privates.getImage = function(query, ref) {
-        if (typeof(query) === "undefined") {
-            query = {};
+    __methods.isArray = function(arg) {
+        return Object.prototype.toString.call(arg) === '[object Array]';
+    }
+
+    __methods.isDate = function(arg) {
+        return (arg instanceof Date) && !isNaN(arg.valueOf())
+    }
+
+    __methods.isImg = function(arg) {
+        return (arg instanceof Img);
+    }
+
+    __methods.isOperator = function(arg) {
+        return /^\$+(in|or|and|eq|ne|lte|gte|lt|gt)$/.test(arg);
+    }
+
+    __methods.isField = function(arg) {
+        return /^(id|index|url|createdAt|loadedAt)$/.test(arg);
+    }
+
+    __methods.calcQuery = function(a, b) {
+        var isString = __methods.isString;
+        var isNumber = __methods.isNumber;
+        var isNumeric = __methods.isNumeric;
+        var isArray = __methods.isArray;
+        var isObject = __methods.isObject;
+        var isField = __methods.isField;
+        var isOperator = __methods.isOperator;
+        var pars, calc;
+
+        if (!isObject(a) || !isObject(b)) {
+            return false;
         }
-        var copyObject = __privates.copyObject;
-        var len = __images.length;
-        var keys = Object.keys(query);
-        var keyLen = keys.length;
-        var output;
-        var x;
-        var k;  
-        var i;
-        var j;
-        var c;
-        for (i = 0; i < len; i++) {
-            x = __images[i];
-            c = 0;
-            for (j = 0; j < keyLen; j++) {
-                k = keys[j];
-                if (x[k] === query[k]) {
-                    c++;
-                }
-            }
-            if (c === keyLen) {
-                if (ref) {
-                    output = x;
+
+        // parse query
+        pars = function(obj, query) {
+            var i;
+            var keys;
+            var field;
+            var value;
+            var len;
+            var count = 0;
+            var res;
+            
+            keys = Object.keys(query);
+            len = keys.length;
+            for (i = 0; i < len; i++) {
+                field = keys[i];
+                value = query[field];
+                res = calc(obj, field, value);
+                if (res) {
+                    count++;
                 } else {
-                    output = copyObject(x);
+                    return false;
                 }
-                break;
             }
+            return count === len;
         }
-        return output;
-    }
 
-    __privates.getImages = function(query, ref) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var copyObject = __privates.copyObject;
-        var len = __images.length;
-        var keys = Object.keys(query);
-        var keyLen = keys.length;
-        var output = [];
-        var x;
-        var k;  
-        var i;
-        var j;
-        var c;
-        for (i = 0; i < len; i++) {
-            x = __images[i];
-            c = 0;
-            for (j = 0; j < keyLen; j++) {
-                k = keys[j];
-                if (x[k] === query[k]) {
-                    c++;
-                }
-            }
-            if (c === keyLen) {
-                if (ref) {
-                    output.push(x);
+        // calc operator
+        calc = function(obj, field, value) {
+            var i;
+            var keys;
+            var key;
+            var len;
+            var count = 0;
+            var res;
+            var x = obj[field];
+            var y;
+
+            if (isOperator(field) && isArray(value)) {
+                if (field === "$or") {
+                    len = value.length;
+                    for (i = 0; i < len; i++) {
+                        res = pars(obj, value[i]);
+                        if (res) {
+                            count++;
+                            break;
+                        }
+                    }
+                    return count > 0;
+                } else if (field === "$and") {
+                    len = value.length;
+                    for (i = 0; i < len; i++) {
+                        res = pars(obj, value[i]);
+                        if (res) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    return count === len;
                 } else {
-                    output.push(copyObject(x));
+                    return false;
                 }
+            } else if (isObject(value)) {
+                keys = Object.keys(value);
+                len = keys.length;
+                for (i = 0; i < len; i++) {
+                    key = keys[i];
+                    y = value[key];
+                    if (isNumber(x) && isNumeric(y)) {
+                        y = parseInt(y, 10);
+                    }
+                    if (isOperator(key)) {
+                        if (
+                            (key === "$eq") &&
+                            (x === y)
+                        ) {
+                            count++;
+                        } else if (
+                            (key === "$ne") &&
+                            (x !== y)
+                        ) {
+                            count++;
+                        } else if (
+                            (key === "$in") &&
+                            isArray(y) &&
+                            (y.indexOf(x) > -1)
+                        ) {
+                            count++;
+                        } else if (
+                            (key === "$gt") &&
+                            (x > y)
+                        ) {
+                            count++;
+                        } else if (
+                            (key === "$gte") &&
+                            (x >= y)
+                        ) {
+                            count++;
+                        } else if (
+                            (key === "$lt") &&
+                            (x < y)
+                        ) {
+                            count++;
+                        } else if (
+                            (key === "$lte") &&
+                            (x <= y)
+                        ) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                return count === len;
+            } else if (isField(field)) {
+                y = value;
+                if (isNumber(x) && isNumeric(y)) {
+                    y = parseInt(y, 10);
+                }
+                return x === y;
+            } else {
+                return false;
             }
         }
-        return output;
+        return pars(a, b);
     }
 
-    __privates.copyObject = function(obj) {
+    __methods.checkType = function(value, type) {
+        var isUndefined = __methods.isUndefined;
+        var isNull = __methods.isNull;
+        var isString = __methods.isString;
+        var isNumber = __methods.isNumber;
+        var isNumeric = __methods.isNumeric;
+        var isObject = __methods.isObject;
+        var isArray = __methods.isArray;
+        var isBlob = __methods.isBlob;
+        var isNode = __methods.isNode;
+        var isElement = __methods.isElement;
+        var isFunction = __methods.isFunction;
+        var isDate = __methods.isDate;
+        var isImg = __methods.isImg;
+
+        switch(type) {
+            case "undefined": return isUndefined(value);
+            case "null": return isNull(value);
+            case "boolean": return isBoolean(value);
+            case "string": return isString(value);
+            case "number": return isNumber(value);
+            case "numeric": return isNumeric(value);
+            case "object": return isObject(value);
+            case "array": return isArray(value);
+            case "blob": return isBlob(value);
+            case "node": case "element": return isNode(value) && isElement(value);
+            case "function": return isFunction(value);
+            case "date": return isDate(value);
+            case "img": return isImg(value);
+            default: return false;
+        }
+    }
+
+    __methods.copyObject = function(obj) {
         var output = {};
         var keys = Object.keys(obj);
         var len = keys.length;
@@ -100,322 +469,39 @@
         return output;
     }
 
-    __privates.generateUID = function() {
-        var getImage = __privates.getImage;
-        var mx = 128;
-        var i = 0;
-        var getUID = function() {
-            var id = ("0000" + ((Math.random() * Math.pow(36, 4)) | 0).toString(36)).slice(-4);
-            var image = getImage({id: id}, true);
-            if (typeof(image) === "undefined") {
-                return id;
-            } else if (i < mx) {
-                i++;
-                return getUID();
-            } else {
-                return undefined;
-            }
-        }
-        return getUID();
-    }
+    // 
+    // exports
+    // 
 
-    __privates.setSiblings = function(image) {
-        var nextImage = __images[image.index + 1];
-        var prevImage = __images[image.index - 1];
-        if (typeof(nextImage) === "undefined") {
-            nextImage = null;
-        } else {
-            nextImage.prevSibling = image;
-        }
-        if (typeof(prevImage) === "undefined") {
-            prevImage = null;
-        } else {
-            prevImage.nextSibling = image;
-        }
-        image.nextSibling = nextImage;
-        image.prevSibling = prevImage;
-        return true;
-    }
-
-    __privates.setMethods = function(image) {
-        image.remove = function() {
-            return __exports.removeOne({id: this.id});
-        }
-        image.load = function(cb) {
-            return __exports.loadOne({id: this.id}, cb);
-        }
-        image.set = function(element) {
-            return __exports.setOne({id: this.id}, element);
-        }
-    }
-
-    __privates.removeMethods = function(image) {
-        image.remove = null;
-        image.load = null;
-        image.set = null;
-        return true;
-    }
-
-    __exports.addOne = function(blob) {
-        var createObjectURL = URL.createObjectURL;
-        var setSiblings = __privates.setSiblings;
-        var setMethods = __privates.setMethods;
-        var generateUID = __privates.generateUID;
-        var copyObject = __privates.copyObject;
-        var isBlob = __privates.isBlob;
-        var output;
-        var newImage = {};
-
-        if (!isBlob(blob)) {
-            throw new Error("Parameter must be Blob");
-        }
-
-        newImage.id = generateUID();
-        newImage.index = __images.length;
-        newImage.elements = [];
-        newImage.url = createObjectURL(blob);
-        newImage.nextSibling = null;
-        newImage.prevSibling = null;
-        newImage.createdAt = new Date().getTime();
-        setSiblings(newImage);
-        setMethods(newImage);
-        __images.push(newImage);
-        output = copyObject(newImage);
-        return output;
-    }
-
-    __exports.addMany = function(blobs) {
-        var createObjectURL = URL.createObjectURL;
-        var setSiblings = __privates.setSiblings;
-        var setMethods = __privates.setMethods;
-        var generateUID = __privates.generateUID;
-        var copyObject = __privates.copyObject;
-        var isBlob = __privates.isBlob;
-        var len = blobs.length;
-        var hasError = false;
-        var output = [];
+    __exports.findOne = function(query) {
+        var instances = __instances;
+        var len = instances.length;
         var i;
-
+        var output;
         for (i = 0; i < len; i++) {
-            if (!isBlob(blobs[i])) {
-                hasError = true;
-                break;
+            if (instances[i].match(query)) {
+                output = instances[i];
             }
-        }
-        if (hasError) {
-            return false;
-        }
-        for (i = 0; i < len; i++) {
-            var newImage = {};
-            newImage.id = generateUID();
-            newImage.index = __images.length;
-            newImage.elements = [];
-            newImage.url = createObjectURL(blobs[i]);
-            newImage.nextSibling = null;
-            newImage.prevSibling = null;
-            newImage.createdAt = new Date().getTime();
-            setSiblings(newImage);
-            setMethods(newImage);
-            __images.push(newImage);
-            output.push(copyObject(newImage));
         }
         return output;
     }
 
-    __exports.getOne = function(query) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var getImage = __privates.getImage;
-        var image = getImage(query);
-        return image;
-    }
-
-    __exports.getMany = function(query) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var getImages = __privates.getImages;
-        var images = getImages(query);
-        return images;
-    }
-
-    __exports.setOne = function(query, element) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var isElement = __privates.isElement;
-        var isNode = __privates.isNode;
-        var getImage = __privates.getImage;
-        var image = getImage(query, true);
-        var hasError = false;
-        var len;
+    __exports.findMany = function(query) {
+        var instances = __instances;
+        var len = instances.length;
         var i;
-
-        if ((typeof(image) === "undefined") || !isElement(element) || !isNode(element)) {
-            return false;
-        }
-        len = image.elements.length;
-        for (i = 0; i < len; i++) {
-            if (image.elements[i].isSameNode(element)) {
-                hasError = true;
-                break;
-            }
-        }
-        if (hasError) {
-            return false;
-        }
-        image.elements.push(element);
-        return true;
-    }
-
-    __exports.setMany = function(query, element) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var isElement = __privates.isElement;
-        var isNode = __privates.isNode;
-        var getImages = __privates.getImages;
-        var images = getImages(query, true);
-        var len = images.length;
-        var elemLen;
-        var hasError = false;
-        var i;
-        var j;
-        
-        if (!isElement(element) || !isNode(element)) {
-            return false;
-        }
-        for (i = 0; i < len; i++) {
-            elemLen = images[i].elements.length;
-            for (j = 0; j < elemLen; j++) {
-                if (images[i].elements[j].isSameNode(element)) {
-                    hasError = true;
-                    break;
-                }
-            }
-            if (hasError) {
-                break;
-            }
-        }
-        if (hasError) {
-            return false;
-        }
-        for (i = 0; i < len; i++) {
-            images[i].elements.push(element);
-        }
-        return true;
-    }
-
-    __exports.removeOne = function(query) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var revokeObjectURL = URL.revokeObjectURL;
-        var getImage = __privates.getImage;
-        var setSiblings = __privates.setSiblings;
-
-        var image = getImage(query, true);
-        var nextImage;
-        var idx;
-        var url;
-
-        if (typeof(image) === "undefined") {
-            return false;
-        }
-
-        idx = image.index;
-        nextImage = image.nextSibling;
-        url = image.url;
-        __images.splice(idx, 1); // remove
-        revokeObjectURL(url);
-
-        while(!!nextImage) {
-            nextImage.index = idx;
-            setSiblings(nextImage);
-            nextImage = nextImage.nextSibling;
-            idx++;
-        }
-
-        return true;
-    }
-
-    __exports.loadOne = function(query, cb) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var copyObject = __privates.copyObject;
-        var getImage = __privates.getImage;
-        var image = getImage(query, true);
-        var output;
-
-        if (typeof(image) === "undefined") {
-            return cb(new Error("Image not found"));
-        }
-
-        if (image.status === 0) {
-            var img = new Image();
-            img.onload = function() {
-                image.status = 1;
-                output = copyObject(image);
-                return cb(null, output);
-            }
-            img.onerror = function() {
-                image.status = 9;
-                return cb(new Error("Load error"));
-            }
-            img.src = image.url;
-            return cb(null, image);
-        } else if (image.status === 1) {
-            output = copyObject(image);
-            return cb(null, output);
-        } else if (image.stutus === 2) {
-            output = copyObject(image);
-            return cb(null, output);
-        }
-    }
-
-    __exports.loadMany = function(query, cb) {
-        if (typeof(query) === "undefined") {
-            query = {};
-        }
-        var copyObject = __privates.copyObject;
-        var getImages = __privates.getImages;
-        var images = getImages(query, true);
         var output = [];
-        var l = images.length;
-        var c = 0;
-        var x;
-
-        var fn = function() {
-            if (c < l) {
-                x = images[c];
-                var img = new Image();
-                img.onload = function() {
-                    x.status = 1;
-                    output.push(copyObject(x));
-                    c++;
-                    fn();
-                }
-                img.onerror = function() {
-                    x.status = 9;
-                    c++;
-                    fn();
-                }
-                if (x.status === 0) {
-                    img.src = x.url;
-                } else {
-                    c++;
-                    fn();
-                }
-            } else {
-                return cb(null, output);
+        for (i = 0; i < len; i++) {
+            if (instances[i].match(query)) {
+                output.push(instances[i]);
             }
         }
-
-        fn();
+        return output;
     }
 
+    if (typeof(window.Img) === "undefined") {
+        window.Img = Img;
+    }
     if (typeof(window.imageLoader) === "undefined") {
         window.imageLoader = __exports;
     }
