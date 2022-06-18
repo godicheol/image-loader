@@ -282,7 +282,6 @@
     }
 
     __methods.calcQuery = function(a, b) {
-        var isString = __methods.isString;
         var isNumber = __methods.isNumber;
         var isNumeric = __methods.isNumeric;
         var isArray = __methods.isArray;
@@ -473,7 +472,7 @@
     // exports
     // 
 
-    __exports.findOne = function(query) {
+    __exports.getOne = function(query) {
         var instances = __instances;
         var len = instances.length;
         var i;
@@ -486,7 +485,7 @@
         return output;
     }
 
-    __exports.findMany = function(query) {
+    __exports.getMany = function(query) {
         var instances = __instances;
         var len = instances.length;
         var i;
