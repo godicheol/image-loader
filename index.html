@@ -28,6 +28,7 @@
             <span id="total-1">0</span>
         </div>
         <button id="next-1">Next</button>
+        <button id="remove-1">Remove</button>
     </div>
 
     <script src="dist/image-loader.js"></script>
@@ -35,8 +36,8 @@
         var curr;
 
         function setTotal() {
-            document.getElementById("current-1").innerHTML = curr.index + 1;
-            document.getElementById("total-1").innerHTML = imageLoader.getMany().length;
+            document.getElementById("current-1").innerHTML = curr ? curr.index + 1 : 0;
+            document.getElementById("total-1").innerHTML = Img.getMany().length;
         }
 
         function showImg(img) {
@@ -57,10 +58,37 @@
             }
         }
 
+        function removeImg() {
+            if (curr) {
+                var element = curr.element;
+                var index = curr.index;
+                var res = curr.remove();
+                if (res) {
+                    element.parentNode.removeChild(element);
+                    curr = undefined;
+
+                    var arr = Img.getMany({
+                        index: {
+                            $in: [index-1, index]
+                        }
+                    });
+
+                    if (arr[1]) {
+                        showImg(arr[1]);
+                    } else if (arr[0]) {
+                        showImg(arr[0]);
+                    } else {
+                        setTotal();
+                    }
+                }               
+            }
+        }
+
         document.getElementById("file-1").addEventListener("change", function(e) {
             var files = e.target.files;
-
-            for (var i = 0; i < files.length; i++) {
+            var c = 0;
+            var len = files.length;
+            for (var i = 0; i < len; i++) {
                 (function(file) {
                     var element = document.createElement("img");
                     element.className = "image";
@@ -72,14 +100,15 @@
                         element: element,
                     });
                     img.load(function(err, res) {
+                        c++;
                         if (err) {
                             console.error(err);
                             return false;
                         }
                         if (img.index === 0) {
                             showImg(img);
-                            setTotal();
-                        } else {
+                        }
+                        if (c === len) {
                             setTotal();
                         }
                         document.getElementById("result-1").appendChild(img.element);
@@ -89,14 +118,16 @@
         });
 
         document.getElementById("next-1").addEventListener("click", function(e) {
-            var img = imageLoader.getOne({index: curr.index+1});
+            var img = Img.getOne({index: curr.index+1});
             showImg(img);
         });
         document.getElementById("prev-1").addEventListener("click", function(e) {
-            var img = imageLoader.getOne({index: curr.index-1});
+            var img = Img.getOne({index: curr.index-1});
             showImg(img);
         });
-        
+        document.getElementById("remove-1").addEventListener("click", function(e) {
+            removeImg();
+        });
 
     </script>
 </body>
