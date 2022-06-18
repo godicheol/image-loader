@@ -39,10 +39,6 @@
             document.getElementById("total-1").innerHTML = imageLoader.getMany().length;
         }
 
-        function renderImg() {
-
-        }
-
         function showImg(img) {
             if (img) {
                 if (curr) {
@@ -66,15 +62,13 @@
 
             for (var i = 0; i < files.length; i++) {
                 (function(file) {
-                    var img = new Img({
-                        blob: file,
-                    });
-
                     var element = document.createElement("img");
                     element.className = "image";
                     element.style.display = "none";
-
+                    
+                    var img = new Img();
                     img.set({
+                        blob: file,
                         element: element,
                     });
                     img.load(function(err, res) {
@@ -84,6 +78,8 @@
                         }
                         if (img.index === 0) {
                             showImg(img);
+                            setTotal();
+                        } else {
                             setTotal();
                         }
                         document.getElementById("result-1").appendChild(img.element);

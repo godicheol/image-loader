@@ -4,8 +4,6 @@
     var __exports = {};
     var __methods = {};
     var __instances = [];
-    var __events = {};
-    var __queues = [];
 
     var __schema = {
         id: "string",
@@ -29,13 +27,13 @@
         remove: "function",
         prevSibling: "img",
         nextSibling: "img",
-        createdAt: "number",
-        loadedAt: "number",
+        createdAt: "date",
+        loadedAt: "date",
     }
 
     function Img(arg) {
+        var schema = __schema;
         var generateUID = __methods.generateUID;
-        var checkType = __methods.checkType;
         var isUndefined = __methods.isUndefined;
         var isNull = __methods.isNull;
         var isString = __methods.isString;
@@ -50,7 +48,11 @@
         var isDate = __methods.isDate;
         var isImg = __methods.isImg;
         var isOperator = __methods.isOperator;
-        var calcQuery = __methods.calcQuery;
+        var checkType = __methods.checkType;
+        var checkField = __methods.checkField;
+        var checkValue = __methods.checkValue;
+        var checkImg = __methods.checkImg;
+        var queryImg = __methods.queryImg;
         var createURL = URL.createObjectURL;
         var revokeURL = URL.revokeObjectURL;
 
@@ -59,52 +61,41 @@
             arg = {};
         }
 
-        // set value
-        this.index = __instances.length;
-        this.id = generateUID();
-        this.element = arg.element;
-        this.blob = arg.blob;
-        this.prevSibling = __instances[this.index - 1];
-        this.nextSibling = __instances[this.index + 1];
-        this.createdAt = new Date().getTime();
-        if (this.blob) {
-            this.name = this.blob.name;
-            this.size = this.blob.size;
-            this.type = this.blob.type;
-        }
-
         // set methods
         this.match = function(query) {
             if (!isObject(query)) {
                 query = {};
             }
-            return calcQuery(this, query);
+            return queryImg(this, query);
         }
         this.set = function(arg) {
             if (!isObject(arg)) {
                 throw new Error("Img.set() argument must be Object");
             }
-            var schema = __schema;
-            var keys = Object.keys(schema);
-            var argKeys = Object.keys(arg);
-            var argLen = argKeys.length;
-            var i, k;
-            for (i = 0; i < argLen; i++) {
-                k = argKeys[i];
-                if (keys.indexOf(k) > -1) {
-                    this[k] = arg[k];
-                }
-            }
-            this.check();
-        }
-        this.check = function() {
-            var schema = __schema;
-            var k = Object.keys(this);
-            var len = k.length;
-            var i;
+            var keys = Object.keys(arg);
+            var len = keys.length;
+            var i, field;
             for (i = 0; i < len; i++) {
-                if (!checkType(this[k[i]], schema[k[i]])) {
-                    delete this[k[i]];
+                field = keys[i];
+                if (
+                    schema.hasOwnProperty(field) &&
+                    schema[field] !== "function" &&
+                    checkValue(field, arg[field])
+                ) {
+                    this[field] = arg[field];
+
+                    if (field === "blob") {
+                        this.url = createURL(this.blob);
+                        if (checkValue("name", this.blob.name)) {
+                            this.name = this.blob.name;
+                        }
+                        if (checkValue("name", this.blob.size)) {
+                            this.size = this.blob.size;
+                        }
+                        if (checkValue("name", this.blob.type)) {
+                            this.type = this.blob.type;
+                        }
+                    }
                 }
             }
             return true;
@@ -128,13 +119,14 @@
                     return cb(new Error("Img was already loaded"));
                 }
             }
-
             element.onload = function() {
-                img.loadedAt = new Date().getTime();
-                img.width = element.width;
-                img.height = element.height;
-                img.naturalWidth = element.naturalWidth;
-                img.naturalHeight = element.naturalHeight;
+                img.set({
+                    width: element.width,
+                    height: element.height,
+                    naturalWidth: element.naturalWidth,
+                    naturalHeight: element.naturalHeight,
+                    loadedAt: new Date(),
+                });
                 if (isFunction(cb)) {
                     return cb(null, {
                         complete: element.complete,
@@ -162,6 +154,7 @@
             var index = this.index;
             var nextSibling = this.nextSibling;
             var prevSibling = this.prevSibling;
+            var n, i;
 
             // set siblings
             if (!isUndefined(nextSibling) && !isUndefined(prevSibling)) {
@@ -174,13 +167,19 @@
             }
 
             // set index
+            n = nextSibling;
+            i = index;
+            while(!isUndefined(n)) {
+                n.index = i;
+                n = n.nextSibling;
+                i++;
+            }
 
             // 
 
-            delete this;
+            delete this; // ?
         }
         this.copy = function() {
-            var schema = __schema;
             var keys = Object.keys(schema);
             var len = keys.length;
             var i;
@@ -192,16 +191,30 @@
             }
             return output;
         }
+        this.move = function(index) {
+            
+        }
+        this.split = function() {
+
+        }
+
+        // set value
+        this.index = __instances.length;
+        this.id = generateUID();
+        this.prevSibling = __instances[this.index - 1];
+        this.nextSibling = __instances[this.index + 1];
+        this.createdAt = new Date();
+        this.set(arg);
 
         // check values type
-        this.check();
+        checkImg(this);
 
         // convert blob to url
         if (!isUndefined(this.blob) && isUndefined(this.url)) {
             this.url = createURL(this.blob);
         }
 
-        // set sibling
+        // set siblings
         if (isImg(this.prevSibling)) {
             this.prevSibling.nextSibling = this;
         }
@@ -278,16 +291,17 @@
     }
 
     __methods.isField = function(arg) {
-        return /^(id|index|url|createdAt|loadedAt)$/.test(arg);
+        return /^(id|index|url|name|size|type|width|height|naturalWidth|naturalHeight|createdAt|loadedAt)$/.test(arg);
     }
 
-    __methods.calcQuery = function(a, b) {
+    __methods.queryImg = function(a, b) {
         var isNumber = __methods.isNumber;
         var isNumeric = __methods.isNumeric;
         var isArray = __methods.isArray;
         var isObject = __methods.isObject;
         var isField = __methods.isField;
         var isOperator = __methods.isOperator;
+        var isDate = __methods.isDate;
         var pars, calc;
 
         if (!isObject(a) || !isObject(b)) {
@@ -364,6 +378,12 @@
                     if (isNumber(x) && isNumeric(y)) {
                         y = parseInt(y, 10);
                     }
+                    if (isDate(x)) {
+                        x = x.getTime();
+                    }
+                    if (isDate(y)) {
+                        y = y.getTime();
+                    }
                     if (isOperator(key)) {
                         if (
                             (key === "$eq") &&
@@ -414,6 +434,12 @@
                 if (isNumber(x) && isNumeric(y)) {
                     y = parseInt(y, 10);
                 }
+                if (isDate(x)) {
+                    x = x.getTime();
+                }
+                if (isDate(y)) {
+                    y = y.getTime();
+                }
                 return x === y;
             } else {
                 return false;
@@ -453,6 +479,36 @@
             case "img": return isImg(value);
             default: return false;
         }
+    }
+
+    __methods.checkField = function(img, field) {
+        var checkType = __methods.checkType;
+        var schema = __schema;
+        if (!checkType(img[field], schema[field])) {
+            delete img[field];
+        }
+        return true;
+    }
+
+    __methods.checkValue = function(field, value) {
+        var checkType = __methods.checkType;
+        var schema = __schema;
+        return checkType(value, schema[field]);
+    }
+
+    __methods.checkImg = function(img) {
+        var checkType = __methods.checkType;
+        var schema = __schema;
+        var keys = Object.keys(img);
+        var len = keys.length;
+        var i, field;
+        for (i = 0; i < len; i++) {
+            field = keys[i];
+            if (!checkType(img[field], schema[field])) {
+                delete img[field];
+            }
+        }
+        return true;
     }
 
     __methods.copyObject = function(obj) {
