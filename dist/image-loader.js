@@ -16,14 +16,16 @@
         naturalWidth: "number",
         naturalHeight: "number",
         element: "element",
+        src: "string",
         blob: "blob",
-        url: "string",
         match: "function",
         find: "function",
         set: "function",
+        unset: "function",
         check: "function",
         load: "function",
         copy: "function",
+        move: "function",
         remove: "function",
         prevSibling: "img",
         nextSibling: "img",
@@ -31,6 +33,7 @@
         loadedAt: "date",
     }
 
+    // test
     function Evt(arg) {
         var events = __events;
         var isFunction = __methods.isFunction;
@@ -75,6 +78,7 @@
         var isError = __methods.isError;
         var isFunction = __methods.isFunction;
         var isDate = __methods.isDate;
+        var isUrl = __methods.isUrl;
         var isImg = __methods.isImg;
         var isField = __methods.isField;
         var isOperator = __methods.isOperator;
@@ -242,85 +246,138 @@
             var keys = Object.keys(obj);
             var len = keys.length;
             var i, field;
+
+            // check field, value
             for (i = 0; i < len; i++) {
                 field = keys[i];
-                if (
-                    schema.hasOwnProperty(field) &&
-                    schema[field] !== "function" &&
-                    checkValue(field, obj[field])
-                ) {
-                    this[field] = obj[field];
+                if (!schema.hasOwnProperty(field)) {
+                    throw new Error("`"+field+"` is not valid");
+                }
+                if (schema[field] === "function") {
+                    throw new Error("`"+field+"` is uneditable");
+                }
+                if (!checkValue(field, obj[field])) {
+                    throw new Error("`"+field+"` is not valid type");
+                }
+                if (field === "blob" && !isUndefined(this.loadedAt) ) {
+                    throw new Error("Img.blob can\'t edit after has been loaded");
+                }
+                if (field === "src" && !isUndefined(this.loadedAt) ) {
+                    throw new Error("Img.src can\'t edit after has been loaded");
+                }
+            }
 
-                    if (field === "blob") {
-                        this.url = createURL(this.blob);
-                        if (checkValue("name", this.blob.name)) {
-                            this.name = this.blob.name;
-                        }
-                        if (checkValue("size", this.blob.size)) {
-                            this.size = this.blob.size;
-                        }
-                        if (checkValue("type", this.blob.type)) {
-                            this.type = this.blob.type;
-                        }
+            // set value
+            for (i = 0; i < len; i++) {
+                field = keys[i];
+                this[field] = obj[field];
+                if (field === "blob") {
+                    try {
+                        this.src = createURL(this.blob);
+                        this.name = this.blob.name;
+                        this.size = this.blob.size;
+                        this.type = this.blob.type;
+                    } catch(err) {
+                        console.error(err);
+                        delete this.blob;
+                        delete this.src;
+                        delete this.name;
+                        delete this.type;
+                        delete this.size;
                     }
                 }
             }
             return true;
         }
+        this.unset = function(obj) {
+            if (!isObject(obj)) {
+                throw new Error("Img.unset() argument must be Object");
+            }
+            var keys = Object.keys(obj);
+            var len = keys.length;
+            var i, field;
+
+            // check field, value
+            for (i = 0; i < len; i++) {
+                field = keys[i];
+                if (!schema.hasOwnProperty(field)) {
+                    throw new Error("`"+field+"` is not valid");
+                }
+                if (schema[field] === "function") {
+                    throw new Error("`"+field+"` is uneditable");
+                }
+                if (field === "blob" && !isUndefined(this.loadedAt) ) {
+                    throw new Error("Img.blob can\'t edit after has been loaded");
+                }
+                if (field === "src" && !isUndefined(this.loadedAt) ) {
+                    throw new Error("Img.src can\'t edit after has been loaded");
+                }
+            }
+
+            // unset value
+            for (i = 0; i < len; i++) {
+                field = keys[i];
+
+                if (obj[field]) {
+                    delete this[field];
+                }
+            }
+            return true;
+        }
         this.load = function(cb) {
-            var img = this;
-            var element = this.element;
-            
-            if (isUndefined(this.element)) {
-                if (isFunction(cb)) {
-                    return cb(new Error("Img.element not found"));
+            try {
+                var img = this;
+                var element = this.element;
+                var src = this.src;
+                var blob = this.blob;
+                var loadedAt = this.loadedAt;
+                
+                if (isUndefined(element)) {
+                    throw new Error("Img.element not found");
                 }
-            }
-            if (isUndefined(this.url)) {
-                if (isFunction(cb)) {
-                    return cb(new Error("Img.url not found"));
+                if (!isUndefined(loadedAt)) {
+                    throw new Error("Img was already loaded");
                 }
-            }
-            if (!isUndefined(this.loadedAt)) {
-                if (isFunction(cb)) {
-                    return cb(new Error("Img was already loaded"));
+                if (isUndefined(blob)) {
+                    throw new Error("Img.blob not found");
                 }
-            }
-            element.onload = function() {
-                img.set({
-                    width: element.width,
-                    height: element.height,
-                    naturalWidth: element.naturalWidth,
-                    naturalHeight: element.naturalHeight,
-                    loadedAt: new Date(),
-                });
-                if (isFunction(cb)) {
-                    return cb(null, {
-                        complete: element.complete,
-                        src: element.src,
-                        alt: element.alt,
-                        srcset: element.srcset,
-                        x: element.x,
-                        y: element.y,
+                element.onload = function() {
+                    img.set({
                         width: element.width,
                         height: element.height,
                         naturalWidth: element.naturalWidth,
                         naturalHeight: element.naturalHeight,
+                        loadedAt: new Date(),
                     });
+                    if (isFunction(cb)) {
+                        return cb(null, {
+                            complete: element.complete,
+                            src: element.src,
+                            alt: element.alt,
+                            srcset: element.srcset,
+                            x: element.x,
+                            y: element.y,
+                            width: element.width,
+                            height: element.height,
+                            naturalWidth: element.naturalWidth,
+                            naturalHeight: element.naturalHeight,
+                        });
+                    }
                 }
-            }
-            element.onerror = function() {
+                element.onerror = function() {
+                    throw new Error("Img failed to load");
+                }
+                element.src = img.src;
+                return false;
+            } catch(err) {
                 if (isFunction(cb)) {
-                    return cb(new Error("Img failed to load"));
+                    return cb(err);
                 }
             }
-            element.src = img.url;
         }
         this.remove = function() {
-            var images = __images;
-            var id = this.id;
             var index = this.index;
-            var url = this.url;
+            var src = this.src;
             var nextSibling = this.nextSibling;
             var prevSibling = this.prevSibling;
             var n, i;
@@ -348,46 +405,98 @@
             }
 
             // revoke url
-            revokeURL(url);
+            revokeURL(src);
 
-            delete this; // ?
+            // ?
+            delete this;
             
+            return true;
+        }
+        this.move = function(index) {
+            var max = images.length - 1;
+            var min = 0;
+            var curr = this.index;
+            var len = images.length;
+            var i;
+            var img;
+
+            if (isNumeric(index)) {
+                index = parseInt(index, 10);
+            } else if (!isNumber(index)) {
+                throw new Error("Parameter must be Number");
+            }
+            if (
+                index === curr ||
+                index > max ||
+                index < min
+            ) {
+                return false;
+            }
+
+            // remove
+            images.splice(curr, 1);
+
+            // insert
+            images.splice(index, 0, this);
+
+            // set index
+            i = Math.min(curr, index);
+            for (i; i < len; i++) {
+                img = images[i];
+                if (!isUndefined(img)) {
+                    img.index = i;
+                } else {
+                    break;
+                }
+            }
+
             return true;
         }
         this.copy = function() {
             var keys = Object.keys(schema);
             var len = keys.length;
             var i;
+            var k;
             var output = {};
             for (i = 0; i < len; i++) {
-                if (this.hasOwnProperty(keys[i]) && schema[keys[i]] !== "function") {
-                    output[keys[i]] = this[keys[i]];
+                k = keys[i];
+                if (
+                    this.hasOwnProperty(k) &&
+                    !isFunction(schema[k])
+                ) {
+                    output[k] = this[k];
                 }
             }
             return output;
         }
-        this.move = function(index) {
-            
-        }
-        this.split = function() {
+        this.split = function(x, y, cb) {
+            try {
+                if (!isArray[x] || !isArray[y]) {
+                    throw new Error("Paramter must be Array");
+                }
 
+                // x = x.sort(function)
+
+
+            } catch(err) {
+                if (isFunction(cb)) {
+                    return cb(err);
+                }
+            }
         }
 
         // set value
-        this.index = __images.length;
+        this.index = images.length;
         this.id = generateUID();
-        this.prevSibling = __images[this.index - 1];
-        this.nextSibling = __images[this.index + 1];
+        this.prevSibling = images[this.index - 1];
+        this.nextSibling = images[this.index + 1];
         this.createdAt = new Date();
+
+        // set value from parameter
         this.set(arg);
 
         // check values type
         checkImg(this);
-
-        // convert blob to url
-        if (!isUndefined(this.blob) && isUndefined(this.url)) {
-            this.url = createURL(this.blob);
-        }
 
         // set siblings
         if (isImg(this.prevSibling)) {
@@ -415,22 +524,25 @@
         return arg === null;
     }
     __methods.isBoolean = function(arg) {
-        return (arg === true || arg === false);
+        return typeof(arg) === "boolean";
     }
     __methods.isString = function(arg) {
         return typeof(arg) === "string";
     }
     __methods.isNumber = function(arg) {
-        return typeof(arg) === "number";
+        return typeof(arg) === "number" && !Number.isNaN(arg);
     }
     __methods.isNumeric = function(arg) {
-        return (typeof(arg) === "string") && !isNaN(parseFloat(arg)) && isFinite(arg);
+        return (typeof(arg) === "string") && !Number.isNaN(parseFloat(arg)) && isFinite(arg);
     }
     __methods.isObject = function(arg) {
         return (typeof(arg) === "object" && arg !== null);
     }
     __methods.isFunction = function(arg) {
         return typeof(arg) === "function";
+    }
+    __methods.isFile = function(arg) {
+        return (arg instanceof File);
     }
     __methods.isBlob = function(arg) {
         return (arg instanceof Blob);
@@ -448,7 +560,24 @@
         return Object.prototype.toString.call(arg) === '[object Array]';
     }
     __methods.isDate = function(arg) {
-        return (arg instanceof Date) && !isNaN(arg.valueOf())
+        return (arg instanceof Date) && !Number.isNaN(arg.valueOf())
+    }
+    __methods.isUrl = function(arg) {
+        if (typeof(URL) !== "undefined") {
+            try {
+                return /^(http?:|https?:|file?:)$/i.test(new URL(arg).protocol);
+            } catch(err) {
+                return false;
+            }
+        } else {
+            var re = new RegExp('^(https?:\\/\\/)?'+ // Protocal
+                '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ 
+                '((\\d{1,3}\\.){3}\\d{1,3}))'+ // domain name or ip (v4) address
+                '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+                '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+                '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+            return re.test(arg);
+        }
     }
     __methods.isImg = function(arg) {
         return (arg instanceof Img);
@@ -457,7 +586,7 @@
         return /^\$+(in|or|and|eq|ne|lte|gte|lt|gt)$/.test(arg);
     }
     __methods.isField = function(arg) {
-        return /^(id|index|url|name|size|type|width|height|naturalWidth|naturalHeight|createdAt|loadedAt)$/.test(arg);
+        return /^(id|index|src|name|size|type|width|height|naturalWidth|naturalHeight|createdAt|loadedAt)$/.test(arg);
     }
     __methods.checkType = function(value, type) {
         var isUndefined = __methods.isUndefined;
@@ -468,11 +597,14 @@
         var isObject = __methods.isObject;
         var isArray = __methods.isArray;
         var isBlob = __methods.isBlob;
+        var isFile = __methods.isFile;
         var isNode = __methods.isNode;
         var isElement = __methods.isElement;
+        var isError = __methods.isError;
         var isFunction = __methods.isFunction;
         var isDate = __methods.isDate;
         var isImg = __methods.isImg;
+        var isUrl = __methods.isUrl;
 
         switch(type) {
             case "undefined": return isUndefined(value);
@@ -484,11 +616,14 @@
             case "object": return isObject(value);
             case "array": return isArray(value);
             case "blob": return isBlob(value);
+            case "file": return isFile(value);
             case "node": return isNode(value);
             case "element": return isElement(value);
             case "function": return isFunction(value);
             case "date": return isDate(value);
             case "img": return isImg(value);
+            case "url": return isUrl(value);
+            case "error": return isError(value);
             default: return false;
         }
     }
