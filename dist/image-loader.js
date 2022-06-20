@@ -24,9 +24,11 @@
         unset: "function",
         check: "function",
         load: "function",
+        fetch: "function",
         copy: "function",
         move: "function",
         remove: "function",
+        split: "function",
         prevSibling: "img",
         nextSibling: "img",
         createdAt: "date",
@@ -98,7 +100,8 @@
             if (!isObject(obj)) {
                 obj = {};
             }
-            var pars, calc;
+            var pars;
+            var calc;
 
             // parse query
             pars = function(img, query) {
@@ -107,8 +110,8 @@
                 var field;
                 var value;
                 var len;
-                var count = 0;
                 var res;
+                var count = 0;
                 
                 keys = Object.keys(query);
                 len = keys.length;
@@ -245,19 +248,26 @@
             }
             var keys = Object.keys(obj);
             var len = keys.length;
-            var i, field;
+            var i;
+            var field;
+            var value;
+            var res;
 
             // check field, value
             for (i = 0; i < len; i++) {
                 field = keys[i];
+                value = obj[field];
                 if (!schema.hasOwnProperty(field)) {
                     throw new Error("`"+field+"` is not valid");
                 }
                 if (schema[field] === "function") {
-                    throw new Error("`"+field+"` is uneditable");
+                    throw new Error("`"+field+"` is uneditable fiend");
                 }
-                if (!checkValue(field, obj[field])) {
+                if (!checkValue(field, value)) {
                     throw new Error("`"+field+"` is not valid type");
+                }
+                if (field === "id") {
+                    throw new Error("`"+field+"` is undefined field");
                 }
                 if (field === "blob" && !isUndefined(this.loadedAt) ) {
                     throw new Error("Img.blob can\'t edit after has been loaded");
@@ -270,13 +280,14 @@
             // set value
             for (i = 0; i < len; i++) {
                 field = keys[i];
-                this[field] = obj[field];
+                value = obj[field];
                 if (field === "blob") {
                     try {
-                        this.src = createURL(this.blob);
-                        this.name = this.blob.name;
-                        this.size = this.blob.size;
-                        this.type = this.blob.type;
+                        this.blob = value;
+                        this.src = createURL(value);
+                        this.name = value.name;
+                        this.type = value.type;
+                        this.size = value.size;
                     } catch(err) {
                         console.error(err);
                         delete this.blob;
@@ -285,6 +296,10 @@
                         delete this.type;
                         delete this.size;
                     }
+                } else if (field === "index") {
+                    this.move(value);
+                } else {
+                    this[field] = value;
                 }
             }
             return true;
@@ -317,7 +332,6 @@
             // unset value
             for (i = 0; i < len; i++) {
                 field = keys[i];
-
                 if (obj[field]) {
                     delete this[field];
                 }
@@ -328,7 +342,6 @@
             try {
                 var img = this;
                 var element = this.element;
-                var src = this.src;
                 var blob = this.blob;
                 var loadedAt = this.loadedAt;
                 
@@ -374,6 +387,25 @@
                     return cb(err);
                 }
             }
+        }
+        this.fetch = function(url, cb) {
+            var img = this;
+            fetch(url)
+                .then(function(res) {
+                    if (!res.ok) {
+                        throw new Error("Fetch error");
+                    }
+                    return res.blob();
+                })
+                .then(function(blob) {
+                    img.set({
+                        blob: blob
+                    });
+                    return cb(null, true);
+                })
+                .catch(function(err) {
+                    return cb(err);
+                });
         }
         this.remove = function() {
             var index = this.index;
@@ -449,7 +481,6 @@
                     break;
                 }
             }
-
             return true;
         }
         this.copy = function() {
@@ -468,21 +499,6 @@
                 }
             }
             return output;
-        }
-        this.split = function(x, y, cb) {
-            try {
-                if (!isArray[x] || !isArray[y]) {
-                    throw new Error("Paramter must be Array");
-                }
-
-                // x = x.sort(function)
-
-
-            } catch(err) {
-                if (isFunction(cb)) {
-                    return cb(err);
-                }
-            }
         }
 
         // set value
@@ -565,7 +581,7 @@
     __methods.isUrl = function(arg) {
         if (typeof(URL) !== "undefined") {
             try {
-                return /^(http?:|https?:|file?:)$/i.test(new URL(arg).protocol);
+                return /^(https:|http:|file:)$/i.test(new URL(arg).protocol);
             } catch(err) {
                 return false;
             }
@@ -654,11 +670,14 @@
     Img.getOne = function(query) {
         var images = __images;
         var len = images.length;
+        var img;
         var i;
         var output;
         for (i = 0; i < len; i++) {
-            if (images[i].match(query)) {
-                output = images[i];
+            img = images[i];
+            if (img.match(query)) {
+                output = img;
+                break;
             }
         }
         return output;
@@ -666,17 +685,62 @@
     Img.getMany = function(query) {
         var images = __images;
         var len = images.length;
+        var img;
         var i;
         var output = [];
         for (i = 0; i < len; i++) {
-            if (images[i].match(query)) {
-                output.push(images[i]);
+            img = images[i];
+            if (img.match(query)) {
+                output.push(img);
             }
         }
         return output;
     }
-    Img.removeOne = function(query) {}
-    Img.removeMany = function(query) {}
+    Img.removeOne = function(query) {
+        var images = __images;
+        var len = images.length;
+        var i;
+        var img;
+        var res;
+        var output = {
+            matchedCount: 0,
+            removedCount: 0,
+        }
+        for (i = 0; i < len; i++) {
+            img = images[i];
+            if (img.match(query)) {
+                output.matchedCount++;
+                res = img.remove();
+                if (res) {
+                    output.removedCount++;
+                }
+                break;
+            }
+        }
+        return output;
+    }
+    Img.removeMany = function(query) {
+        var images = __images;
+        var len = images.length;
+        var i;
+        var res;
+        var img;
+        var output = {
+            matchedCount: 0,
+            removedCount: 0,
+        }
+        for (i = 0; i < len; i++) {
+            img = images[i];
+            if (img.match(query)) {
+                output.matchedCount++;
+                res = img.remove();
+                if (res) {
+                    output.removedCount++;
+                }
+            }
+        }
+        return output;
+    }
     Img.updateOne = function(query, arg) {}
     Img.updateMany = function(query, arg) {}
 
