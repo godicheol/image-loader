@@ -1,12 +1,12 @@
 [DEMO](https://godicheol.github.io/image-loader/)
 
 ```
-object = {
+var object = {
     blob: file,
     element: document.getElementId("img")
 }
 
-query = {
+var query = {
     $and: [{
         index: {
             $gt: 3,

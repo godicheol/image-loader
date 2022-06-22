@@ -742,8 +742,48 @@
         }
         return output;
     }
-    Img.updateOne = function(query, arg) {}
-    Img.updateMany = function(query, arg) {}
+    Img.updateOne = function(query, arg) {
+        var images = __images;
+        var len = images.length;
+        var img;
+        var i;
+        for (i = 0; i < len; i++) {
+            if (images[i].match(query)) {
+                img = images[i];
+                break;
+            }
+        }
+        if (!img) {
+            return false;
+        }
+        return img.set(arg);
+    }
+    Img.updateMany = function(query, arg) {
+        var images = __images;
+        var len = images.length;
+        var i;
+        var img;
+        var res;
+        var output = {
+            matchedCount: 0,
+            updatedCount: 0,
+        }
+        if (arg.index)  {
+            delete arg.index;
+        }
+        for (i = 0; i < len; i++) {
+            img = images[i];
+            if (img.match(query)) {
+                output.matchedCount++;
+                res = img.set(arg);
+                if (res) {
+                    output.updatedCount++;
+                }
+                break;
+            }
+        }
+        return output;
+    }
 
     if (typeof(window.Img) === "undefined") {
         window.Img = Img;
