@@ -356,6 +356,7 @@
                 }
                 element.onload = function() {
                     img.set({
+                        src: element.src,
                         width: element.width,
                         height: element.height,
                         naturalWidth: element.naturalWidth,
