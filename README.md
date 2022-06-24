@@ -1,10 +1,19 @@
 [DEMO](https://godicheol.github.io/image-loader/)
 
 ```
-var object = {
+var img = new Img({
     blob: file,
     element: document.getElementId("img")
-}
+}); // create Img instance
+
+img.set(object) // set field value
+img.unset(object) // remove field 
+img.match(query)
+img.load(function(err, res) {}) 
+img.fetch(url, function(err, res) {}) // get blob from URL
+img.remove() // remove Img instance
+img.move(index) // move index
+img.copy() // remove reference
 
 var query = {
     $and: [{
@@ -17,16 +26,12 @@ var query = {
     }],
 }
 
-var img = new Img(object) // create Img instance
-img.set(object) // set field value
-img.unset(object) // remove field 
-img.match(query)
-img.load(function(err, res) {}) 
-img.fetch(url, function(err, res) {}) // get blob from URL
-img.remove() // remove Img instance
-img.move(index) // move index
-img.copy() // remove reference
-
+// $and: array
+// $or: array
+// $in: array
+// $eq: string, number
+// $ne: string, number,
+// $gt, $gte, $lt, $lte: number
 
 Img.getOne(query);
 Img.getMany(query);
