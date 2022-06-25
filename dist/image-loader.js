@@ -55,9 +55,7 @@
         var isImg = __methods.isImg;
         var isField = __methods.isField;
         var isOperator = __methods.isOperator;
-        var checkType = __methods.checkType;
-        var checkValue = __methods.checkValue;
-        var checkImg = __methods.checkImg;
+        var isValidValue = __methods.isValidValue;
         var createURL = URL.createObjectURL;
         var revokeURL = URL.revokeObjectURL;
 
@@ -233,7 +231,7 @@
                 if (schema[field] === "function") {
                     throw new Error("`"+field+"` is uneditable fiend");
                 }
-                if (!checkValue(field, value)) {
+                if (!isValidValue(field, value)) {
                     throw new Error("`"+field+"` is not valid type");
                 }
                 if (field === "id") {
@@ -484,9 +482,6 @@
         // set value from parameter
         this.set(arg);
 
-        // check values type
-        checkImg(this);
-
         // set siblings
         if (isImg(this.prevSibling)) {
             this.prevSibling.nextSibling = this;
@@ -577,6 +572,11 @@
     __methods.isField = function(arg) {
         return /^(id|index|src|name|size|type|width|height|naturalWidth|naturalHeight|createdAt|loadedAt)$/.test(arg);
     }
+    __methods.isValidValue = function(field, value) {
+        var checkType = __methods.checkType;
+        var schema = __schema;
+        return checkType(value, schema[field]);
+    }
     __methods.checkType = function(value, type) {
         var isUndefined = __methods.isUndefined;
         var isNull = __methods.isNull;
@@ -615,25 +615,6 @@
             case "error": return isError(value);
             default: return false;
         }
-    }
-    __methods.checkValue = function(field, value) {
-        var checkType = __methods.checkType;
-        var schema = __schema;
-        return checkType(value, schema[field]);
-    }
-    __methods.checkImg = function(img) {
-        var checkType = __methods.checkType;
-        var schema = __schema;
-        var keys = Object.keys(img);
-        var len = keys.length;
-        var i, field;
-        for (i = 0; i < len; i++) {
-            field = keys[i];
-            if (!checkType(img[field], schema[field])) {
-                delete img[field];
-            }
-        }
-        return true;
     }
 
     // 
