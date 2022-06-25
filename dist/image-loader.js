@@ -2,7 +2,6 @@
     'use strict'
 
     var __images = [];
-    var __events = [];
     var __methods = {};
 
     var __schema = {
@@ -35,37 +34,9 @@
         loadedAt: "date",
     }
 
-    // test
-    function Evt(arg) {
-        var events = __events;
-        var isFunction = __methods.isFunction;
-
-        if (!isFunction(arg)) {
-            throw new Error("Parament must be Function");
-        }
-        
-        this.function = arg;
-
-        this.exec = function() {
-            try {
-                // execute first event
-                this.function();
-            } catch(err) {
-                console.error(err);
-            }
-            // remove first event
-            events.splice(0, 1);
-
-            if (events.length > 0) {
-                events[0].exec();
-            }
-        }
-    }
-
     function Img(arg) {
         var images = __images;
         var schema = __schema;
-        var events = __events;
         var generateUID = __methods.generateUID;
         var isUndefined = __methods.isUndefined;
         var isNull = __methods.isNull;
@@ -251,7 +222,6 @@
             var i;
             var field;
             var value;
-            var res;
 
             // check field, value
             for (i = 0; i < len; i++) {
@@ -310,7 +280,8 @@
             }
             var keys = Object.keys(obj);
             var len = keys.length;
-            var i, field;
+            var i;
+            var field;
 
             // check field, value
             for (i = 0; i < len; i++) {
@@ -413,7 +384,8 @@
             var src = this.src;
             var nextSibling = this.nextSibling;
             var prevSibling = this.prevSibling;
-            var n, i;
+            var n;
+            var i;
 
             // remove from array
             images.splice(index, 1);
@@ -746,17 +718,24 @@
         var images = __images;
         var len = images.length;
         var img;
+        var res;
         var i;
+        var output = {
+            matchedCount: 0,
+            updatedCount: 0,
+        }
         for (i = 0; i < len; i++) {
-            if (images[i].match(query)) {
-                img = images[i];
+            img = images[i];
+            if (img.match(query)) {
+                output.matchedCount++;
+                res = img.set(arg);
+                if (res) {
+                    output.updatedCount++;
+                }
                 break;
             }
         }
-        if (!img) {
-            return false;
-        }
-        return img.set(arg);
+        return output;
     }
     Img.updateMany = function(query, arg) {
         var images = __images;
