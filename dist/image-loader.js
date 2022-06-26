@@ -494,10 +494,10 @@
         this.set(arg);
 
         // set siblings
-        if (isImg(this.prevSibling)) {
+        if (!isUndefined(this.prevSibling)) {
             this.prevSibling.nextSibling = this;
         }
-        if (isImg(this.nextSibling)) {
+        if (!isUndefined(this.nextSibling)) {
             this.nextSibling.prevSibling = this;
         }
 
