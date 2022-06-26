@@ -87,9 +87,11 @@
 
         function moveImg() {
             if (curr) {
+                console.log("c1", Img.getMany());
                 var index = parseInt(window.prompt("Index"), 10) - 1;
                 var res = curr.move(index);
                 setTotal();
+                console.log("c2", Img.getMany());
             }
         }
 

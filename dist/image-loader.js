@@ -421,6 +421,8 @@
             var curr = this.index;
             var len = images.length;
             var i;
+            var nextSibling;
+            var prevSibling;
             var img;
 
             if (isNumeric(index)) {
@@ -442,16 +444,27 @@
             // insert
             images.splice(index, 0, this);
 
-            // set index
+            // set index and siblings
             i = Math.min(curr, index);
             for (i; i < len; i++) {
                 img = images[i];
-                if (!isUndefined(img)) {
+                prevSibling = images[i-1];
+                nextSibling = images[i+1];
+
+                if (isImg(img)) {
                     img.index = i;
-                } else {
-                    break;
+                    img.prevSibling = prevSibling;
+                    img.nextSibling = nextSibling;
+
+                    if (isImg(prevSibling)) {
+                        prevSibling.nextSibling = img;
+                    }
+                    if (isImg(nextSibling)) {
+                        nextSibling.prevSibling = img;
+                    }
                 }
             }
+
             return true;
         }
         this.copy = function() {
