@@ -451,17 +451,15 @@
                 prevSibling = images[i-1];
                 nextSibling = images[i+1];
 
-                if (isImg(img)) {
-                    img.index = i;
-                    img.prevSibling = prevSibling;
-                    img.nextSibling = nextSibling;
+                img.index = i;
+                img.prevSibling = prevSibling;
+                img.nextSibling = nextSibling;
 
-                    if (isImg(prevSibling)) {
-                        prevSibling.nextSibling = img;
-                    }
-                    if (isImg(nextSibling)) {
-                        nextSibling.prevSibling = img;
-                    }
+                if (!isUndefined(prevSibling)) {
+                    prevSibling.nextSibling = img;
+                }
+                if (!isUndefined(nextSibling)) {
+                    nextSibling.prevSibling = img;
                 }
             }
 
