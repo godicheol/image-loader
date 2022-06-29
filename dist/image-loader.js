@@ -588,7 +588,7 @@
         this.nextSibling = images[this.index + 1];
         this.createdAt = new Date();
 
-        // fix move(index) before insert Img instance
+        // prevent move index before insert Img instance
         if (!isUndefined(arg.index)) {
             _index = arg.index;
             delete arg.index;
@@ -608,7 +608,7 @@
         // insert to array
         __images.push(this);
 
-        // move after insert Img instance
+        // move index after insert Img instance
         if (!isUndefined(_index)) {
             this.move(_index);
         }
