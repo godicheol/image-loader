@@ -97,8 +97,8 @@
         function splitImg() {
             if (curr) {
                 curr.split({
-                    rows: [0.5*curr.height],
-                    cols: [0.5*curr.width],
+                    rows: [0.5*curr.naturalHeight],
+                    cols: [0.5*curr.naturalWidth],
                 }, function(err, res) {
                     if (err) {
                         console.error(err);
@@ -132,6 +132,7 @@
 
                     removeImg();
                     showImg(firstImg);
+                    console.log(Img.getMany())
                 });
             }
         }
