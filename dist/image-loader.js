@@ -588,6 +588,14 @@
         this.nextSibling = images[this.index + 1];
         this.createdAt = new Date();
 
+        // set siblings
+        if (!isUndefined(this.prevSibling)) {
+            this.prevSibling.nextSibling = this;
+        }
+        if (!isUndefined(this.nextSibling)) {
+            this.nextSibling.prevSibling = this;
+        }
+
         // prevent move index before insert Img instance
         if (!isUndefined(arg.index)) {
             _index = arg.index;
@@ -596,14 +604,6 @@
 
         // set value from arguments
         this.set(arg);
-
-        // set siblings
-        if (!isUndefined(this.prevSibling)) {
-            this.prevSibling.nextSibling = this;
-        }
-        if (!isUndefined(this.nextSibling)) {
-            this.nextSibling.prevSibling = this;
-        }
 
         // insert to array
         __images.push(this);
