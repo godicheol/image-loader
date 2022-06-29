@@ -1,9 +1,19 @@
-(function() {
+(function(global, factory) {
+    if (typeof(define) === "function" && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(["exports"], factory);
+    } else if (typeof(exports) !== "undefined" && typeof(exports.nodeName) !== 'string') {
+        // CommonJS
+        factory(exports);
+    } else {
+        // Browser globals
+        factory(global);
+    }
+})(this, function(exports) {
     'use strict'
 
     var __images = [];
     var __methods = {};
-
     var __schema = {
         id: "string",
         index: "number",
@@ -58,6 +68,7 @@
         var isValidValue = __methods.isValidValue;
         var createURL = URL.createObjectURL;
         var revokeURL = URL.revokeObjectURL;
+        var _index;
 
         // check argument
         if (!isObject(arg)) {
@@ -244,7 +255,6 @@
                     throw new Error("Img.src can\'t edit after has been loaded");
                 }
             }
-
             // set value
             for (i = 0; i < len; i++) {
                 field = keys[i];
@@ -297,7 +307,6 @@
                     throw new Error("Img.src can\'t edit after has been loaded");
                 }
             }
-
             // unset value
             for (i = 0; i < len; i++) {
                 field = keys[i];
@@ -384,10 +393,8 @@
             var prevSibling = this.prevSibling;
             var n;
             var i;
-
             // remove from array
             images.splice(index, 1);
-
             // set siblings
             if (!isUndefined(nextSibling) && !isUndefined(prevSibling)) {
                 nextSibling.prevSibling = prevSibling;
@@ -397,7 +404,6 @@
             } else if (isUndefined(nextSibling) && !isUndefined(prevSibling) && !isUndefined(prevSibling.nextSibling)) {
                 delete prevSibling.nextSibling;
             }
-
             // set index
             n = nextSibling;
             i = index;
@@ -406,13 +412,8 @@
                 n = n.nextSibling;
                 i++;
             }
-
             // revoke url
             revokeURL(src);
-
-            // ?
-            delete this;
-            
             return true;
         }
         this.move = function(index) {
@@ -428,7 +429,7 @@
             if (isNumeric(index)) {
                 index = parseInt(index, 10);
             } else if (!isNumber(index)) {
-                throw new Error("Parameter must be Number");
+                throw new Error("Argument must be Number");
             }
             if (
                 index === curr ||
@@ -437,13 +438,10 @@
             ) {
                 return false;
             }
-
             // remove
             images.splice(curr, 1);
-
             // insert
             images.splice(index, 0, this);
-
             // set index and siblings
             i = Math.min(curr, index);
             for (i; i < len; i++) {
@@ -464,6 +462,106 @@
             }
 
             return true;
+        }
+        this.split = function(options, cb) {
+            var image = new Image();
+            var filename, extension, mimetype, quality, i, j, c, r, rarr, carr, rlen, clen, tw, th, nw, nh, x, y, w, h, rows, cols;
+            var sx, sy, sw, sh, dx, dy, dw, dh;
+            var output = [];
+            var canvasArrayToBlobArray = function() {
+                if (r < rlen) {
+                    if (c < clen) {
+                        rows[r][c].toBlob(function(blob) {
+                            output[r][c] = new File([blob], filename+" ("+(r*clen+c)+")"+extension, {
+                                type: blob.type
+                            });
+                            c++;
+                            canvasArrayToBlobArray();
+                        }, mimetype, quality);
+                    } else {
+                        c = 0;
+                        r++;
+                        canvasArrayToBlobArray();
+                    }
+                } else {
+                    return cb(null, output);
+                }
+            }
+
+            if (!options) {
+                throw new Error("Options must be Object");
+            }
+
+            filename = options.filename ? options.filename : this.name.replace(/\.[^.]+$/, "");
+            quality = typeof(options.quality) === "number" ? options.quality : 0.92;
+            mimetype = /^(image\/)/i.test(options.mimetype) ? options.mimetype : "image/png";
+            extension = "."+mimetype.replace(/^(image\/)/i, "");
+            rarr = options.rows ? options.rows : [];
+            carr = options.cols ? options.cols : [];
+
+            // sort array
+            rarr = rarr.sort(function(a, b) {
+                return a - b;
+            });
+            carr = carr.sort(function(a, b) {
+                return a - b;
+            });
+
+            image.onload = function() {
+                nw = image.naturalWidth;
+                nh = image.naturalHeight;
+                rarr.push(nh);
+                carr.push(nw);
+    
+                // create list
+                rlen = rarr.length;
+                clen = carr.length;
+                rows = [];
+                th = 0;
+                w = 0;
+                h = 0;
+                for (i = 0; i < rlen; i++) {
+                    tw = 0;
+                    cols = [];
+                    h = rarr[i] - th;
+                    for (j = 0; j < clen; j++) {
+                        var canvas = document.createElement("canvas");
+                        var ctx = canvas.getContext("2d");
+                        w = carr[j] - tw;
+                        x = tw;
+                        y = th;
+                        sx = x;
+                        sy = y;
+                        sw = w;
+                        sh = h;
+                        dx = 0;
+                        dy = 0;
+                        dw = w;
+                        dh = h;
+                        canvas.width = dw;
+                        canvas.height = dh;
+                        ctx.drawImage(
+                            image,
+                            sx, sy,
+                            sw, sh,
+                            dx, dy,
+                            dw, dh
+                        );
+                        cols.push(canvas);
+                        tw += w;
+                    }
+                    th += h;
+                    rows.push(cols);
+                    output.push([]);
+                }
+                r = 0;
+                c = 0;
+                canvasArrayToBlobArray();
+            }
+            image.onerror = function() {
+                return cb(new Error("Load error"));
+            }
+            image.src = this.src;
         }
         this.copy = function() {
             var keys = Object.keys(schema);
@@ -490,7 +588,13 @@
         this.nextSibling = images[this.index + 1];
         this.createdAt = new Date();
 
-        // set value from parameter
+        // fix move(index) before insert Img instance
+        if (!isUndefined(arg.index)) {
+            _index = arg.index;
+            delete arg.index;
+        }
+
+        // set value from arguments
         this.set(arg);
 
         // set siblings
@@ -503,6 +607,11 @@
 
         // insert to array
         __images.push(this);
+
+        // move after insert Img instance
+        if (!isUndefined(_index)) {
+            this.move(_index);
+        }
     }
     
     // 
@@ -756,7 +865,7 @@
         return output;
     }
 
-    if (typeof(window.Img) === "undefined") {
-        window.Img = Img;
+    if (typeof(exports.Img) === "undefined") {
+        exports.Img = Img;
     }
-})();
+});

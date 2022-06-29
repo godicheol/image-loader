@@ -30,6 +30,7 @@
         <button id="next-1">Next</button>
         <button id="remove-1">Remove</button>
         <button id="move-1">Move</button>
+        <button id="split-1">Split 2x2</button>
     </div>
 
     <script src="dist/image-loader.js"></script>
@@ -87,11 +88,51 @@
 
         function moveImg() {
             if (curr) {
-                console.log("c1", Img.getMany());
                 var index = parseInt(window.prompt("Index"), 10) - 1;
                 var res = curr.move(index);
                 setTotal();
-                console.log("c2", Img.getMany());
+            }
+        }
+
+        function splitImg() {
+            if (curr) {
+                curr.split({
+                    rows: [0.5*curr.height],
+                    cols: [0.5*curr.width],
+                }, function(err, res) {
+                    if (err) {
+                        console.error(err);
+                        return false;
+                    }
+                    var firstImg;
+                    for (var i = 0; i < res.length; i++) {
+                        for (var j = 0; j < res[i].length; j++) {
+                            var element = document.createElement("img");
+                            element.className = "image";
+                            element.style.display = "none";
+                            document.getElementById("result-1").appendChild(element);
+
+                            var img = new Img({
+                                element: element,
+                                blob: res[i][j],
+                                index: curr.index,
+                            });
+                            if (i === 0 && j === 0) {
+                                firstImg = img;
+                            }
+                            img.load(function(err, res) {
+                                if (err) {
+                                    console.error(err);
+                                    return false;
+                                }
+                                setTotal();
+                            });
+                        }
+                    }
+
+                    removeImg();
+                    showImg(firstImg);
+                });
             }
         }
 
@@ -141,6 +182,9 @@
         });
         document.getElementById("move-1").addEventListener("click", function(e) {
             moveImg();
+        });
+        document.getElementById("split-1").addEventListener("click", function(e) {
+            splitImg();
         });
 
     </script>
