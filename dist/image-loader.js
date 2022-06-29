@@ -17,6 +17,8 @@
     var __schema = {
         id: "string",
         index: "number",
+        src: "string",
+        blob: "blob",
         name: "string",
         size: "number",
         type: "string",
@@ -25,19 +27,18 @@
         naturalWidth: "number",
         naturalHeight: "number",
         element: "element",
-        src: "string",
-        blob: "blob",
         match: "function",
-        find: "function",
         set: "function",
         unset: "function",
-        check: "function",
         load: "function",
+        unload: "function",
         fetch: "function",
         copy: "function",
         move: "function",
         remove: "function",
         split: "function",
+        resize: "function",
+        filter: "function",
         prevSibling: "img",
         nextSibling: "img",
         createdAt: "date",
@@ -231,6 +232,7 @@
             var i;
             var field;
             var value;
+            var tmp;
 
             // check field, value
             for (i = 0; i < len; i++) {
@@ -240,40 +242,43 @@
                     throw new Error("`"+field+"` is not valid");
                 }
                 if (schema[field] === "function") {
-                    throw new Error("`"+field+"` is uneditable fiend");
+                    throw new Error("`"+field+"` is uneditable field");
                 }
                 if (!isValidValue(field, value)) {
                     throw new Error("`"+field+"` is not valid type");
                 }
                 if (field === "id") {
-                    throw new Error("`"+field+"` is undefined field");
-                }
-                if (field === "blob" && !isUndefined(this.loadedAt) ) {
-                    throw new Error("Img.blob can\'t edit after has been loaded");
-                }
-                if (field === "src" && !isUndefined(this.loadedAt) ) {
-                    throw new Error("Img.src can\'t edit after has been loaded");
+                    if (isString(value)) {
+                        tmp = value.replace(/\s/g, "");
+                    } else if (isNumber(value)) {
+                        tmp = value.toString(10);
+                    } else {
+                        throw new Error("`"+field+"` value must be string or number");
+                    }
+                    if (tmp.length < 1) {
+                        throw new Error("`"+field+"` value must not be empty");
+                    } else if (Img.exist({id: tmp})) {
+                        throw new Error("`"+field+"` value must not be duplicated");
+                    }
                 }
             }
             // set value
             for (i = 0; i < len; i++) {
                 field = keys[i];
                 value = obj[field];
-                if (field === "blob") {
-                    try {
-                        this.blob = value;
-                        this.src = createURL(value);
-                        this.name = value.name;
-                        this.type = value.type;
-                        this.size = value.size;
-                    } catch(err) {
-                        console.error(err);
-                        delete this.blob;
-                        delete this.src;
-                        delete this.name;
-                        delete this.type;
-                        delete this.size;
+                if (field === "id") {
+                    if (isString(value)) {
+                        this.id = value.replace(/\s/g, "");
+                    } else if (isNumber(value)) {
+                        this.id = value.toString(10);
                     }
+                } else if (field === "blob") {
+                    this.unload();
+                    this.blob = value;
+                    this.src = createURL(value);
+                    this.name = value.name;
+                    this.type = value.type;
+                    this.size = value.size;
                 } else if (field === "index") {
                     this.move(value);
                 } else {
@@ -290,6 +295,7 @@
             var len = keys.length;
             var i;
             var field;
+            var value;
 
             // check field, value
             for (i = 0; i < len; i++) {
@@ -300,17 +306,15 @@
                 if (schema[field] === "function") {
                     throw new Error("`"+field+"` is uneditable");
                 }
-                if (field === "blob" && !isUndefined(this.loadedAt) ) {
-                    throw new Error("Img.blob can\'t edit after has been loaded");
-                }
-                if (field === "src" && !isUndefined(this.loadedAt) ) {
-                    throw new Error("Img.src can\'t edit after has been loaded");
+                if (field === "id") {
+                    throw new Error("`"+field+"` is uneditable");
                 }
             }
             // unset value
             for (i = 0; i < len; i++) {
                 field = keys[i];
-                if (obj[field]) {
+                value = obj[field];
+                if (!isUndefined(this[field]) && value) {
                     delete this[field];
                 }
             }
@@ -366,6 +370,31 @@
                     return cb(err);
                 }
             }
+        }
+        this.unload = function() {
+            if (!isUndefined(this.blob)) {
+                delete this.blob;
+            }
+            if (!isUndefined(this.src)) {
+                revokeURL(this.src);
+                delete this.src;
+            }
+            if (!isUndefined(this.name)) {
+                delete this.name;
+            }
+            if (!isUndefined(this.type)) {
+                delete this.type;
+            }
+            if (!isUndefined(this.size)) {
+                delete this.size;
+            }
+            if (!isUndefined(this.loadedAt)) {
+                delete this.loadedAt;
+            }
+            if (!isUndefined(this.element)) {
+                this.element.src = "";
+            }
+            return true;
         }
         this.fetch = function(url, cb) {
             var img = this;
@@ -741,6 +770,33 @@
     // statics
     // 
 
+    Img.exist = function(query) {
+        var images = __images;
+        var len = images.length;
+        var img;
+        var i;
+        for (i = 0; i < len; i++) {
+            img = images[i];
+            if (img.match(query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    Img.count = function(query) {
+        var images = __images;
+        var len = images.length;
+        var img;
+        var i;
+        var output = 0;
+        for (i = 0; i < len; i++) {
+            img = images[i];
+            if (img.match(query)) {
+                output++;
+            }
+        }
+        return output;
+    }
     Img.getOne = function(query) {
         var images = __images;
         var len = images.length;

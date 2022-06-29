@@ -15,6 +15,7 @@
     <h1>image-loader</h1>
 
     <input id="file-1" type="file" multiple>
+    <input id="file-2" type="file" style="display: none;">
 
     <div class="border"></div>
 
@@ -30,7 +31,9 @@
         <button id="next-1">Next</button>
         <button id="remove-1">Remove</button>
         <button id="move-1">Move</button>
-        <button id="split-1">Split 2x2</button>
+        <button id="split-1">Split</button>
+        <button id="change-1">Change</button>
+        <!-- <button id="load-1">Load</button> -->
     </div>
 
     <script src="dist/image-loader.js"></script>
@@ -187,7 +190,41 @@
         document.getElementById("split-1").addEventListener("click", function(e) {
             splitImg();
         });
+        document.getElementById("change-1").addEventListener("click", function(e) {
+            if (!curr) {
+                return false;
+            }
+            document.getElementById("file-2").click();
+        });
+        document.getElementById("file-2").addEventListener("change", function(e) {
+            var file = e.target.files[0];
+            if (!file) {
+                return false;
+            }
 
+            curr.set({
+                blob: file
+            });
+            
+            curr.load(function(err, res) {
+                if (err) {
+                    console.error(err);
+                    return false;
+                }
+                console.log(res);
+            });
+        });
+        // document.getElementById("load-1").addEventListener("click", function(e) {
+        //     if (curr) {
+        //         curr.load(function(err, res) {
+        //             if (err) {
+        //                 console.error(err);
+        //                 return false;
+        //             }
+        //             console.log(res);
+        //         });
+        //     }
+        // });
     </script>
 </body>
 
