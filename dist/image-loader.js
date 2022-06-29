@@ -330,11 +330,11 @@
                 if (isUndefined(element)) {
                     throw new Error("Img.element not found");
                 }
-                if (!isUndefined(loadedAt)) {
-                    throw new Error("Img was already loaded");
-                }
                 if (isUndefined(blob)) {
                     throw new Error("Img.blob not found");
+                }
+                if (!isUndefined(loadedAt)) {
+                    throw new Error("Img was already loaded");
                 }
                 element.onload = function() {
                     img.set({
@@ -390,9 +390,6 @@
             }
             if (!isUndefined(this.loadedAt)) {
                 delete this.loadedAt;
-            }
-            if (!isUndefined(this.element)) {
-                this.element.src = "";
             }
             return true;
         }
@@ -592,6 +589,8 @@
             }
             image.src = this.src;
         }
+        this.resize = function() {}
+        this.filter = function() {}
         this.copy = function() {
             var keys = Object.keys(schema);
             var len = keys.length;
