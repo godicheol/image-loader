@@ -34,8 +34,9 @@
         unload: "function",
         fetch: "function",
         copy: "function",
-        move: "function",
+        lean: "function",
         remove: "function",
+        delete: "function",
         split: "function",
         resize: "function",
         filter: "function",
@@ -67,6 +68,10 @@
         var isField = __methods.isField;
         var isOperator = __methods.isOperator;
         var isValidValue = __methods.isValidValue;
+        var changeIndex = __methods.changeIndex;
+        var fitToCoverSize = __methods.fitToCoverSize;
+        var fitToContainSize = __methods.fitToContainSize;
+        var fitToAutoSize = __methods.fitToAutoSize;
         var createURL = URL.createObjectURL;
         var revokeURL = URL.revokeObjectURL;
         var _index;
@@ -75,7 +80,6 @@
         if (!isObject(arg)) {
             arg = {};
         }
-
         // set methods
         this.match = function(obj) {
             if (!isObject(obj)) {
@@ -280,7 +284,7 @@
                     this.type = value.type;
                     this.size = value.size;
                 } else if (field === "index") {
-                    this.move(value);
+                    changeIndex(this, value);
                 } else {
                     this[field] = value;
                 }
@@ -442,53 +446,6 @@
             revokeURL(src);
             return true;
         }
-        this.move = function(index) {
-            var max = images.length - 1;
-            var min = 0;
-            var curr = this.index;
-            var len = images.length;
-            var i;
-            var nextSibling;
-            var prevSibling;
-            var img;
-
-            if (isNumeric(index)) {
-                index = parseInt(index, 10);
-            } else if (!isNumber(index)) {
-                throw new Error("Argument must be Number");
-            }
-            if (
-                index === curr ||
-                index > max ||
-                index < min
-            ) {
-                return false;
-            }
-            // remove
-            images.splice(curr, 1);
-            // insert
-            images.splice(index, 0, this);
-            // set index and siblings
-            i = Math.min(curr, index);
-            for (i; i < len; i++) {
-                img = images[i];
-                prevSibling = images[i-1];
-                nextSibling = images[i+1];
-
-                img.index = i;
-                img.prevSibling = prevSibling;
-                img.nextSibling = nextSibling;
-
-                if (!isUndefined(prevSibling)) {
-                    prevSibling.nextSibling = img;
-                }
-                if (!isUndefined(nextSibling)) {
-                    nextSibling.prevSibling = img;
-                }
-            }
-
-            return true;
-        }
         this.split = function(options, cb) {
             var image = new Image();
             var filename, extension, mimetype, quality, i, j, c, r, rarr, carr, rlen, clen, tw, th, nw, nh, x, y, w, h, rows, cols;
@@ -514,7 +471,7 @@
                 }
             }
 
-            if (!options) {
+            if (!isObject(options)) {
                 throw new Error("Options must be Object");
             }
 
@@ -589,7 +546,64 @@
             }
             image.src = this.src;
         }
-        this.resize = function() {}
+        this.resize = function(options, cb) {
+            var image = new Image();
+            var canvas = document.createElement("canvas");
+            var ctx = canvas.getContext("2d");
+            var filename, quality, mimetype, extension;
+            var self = this;
+            var sizes, sw, sh, dx, dy, dw, dh;
+
+            if (!options) {
+                throw new Error("Options must be Object");
+            }
+
+            filename = options.filename ? options.filename : this.name.replace(/\.[^.]+$/, "");
+            quality = typeof(options.quality) === "number" ? options.quality : 0.92;
+            mimetype = /^(image\/)/i.test(options.mimetype) ? options.mimetype : "image/png";
+            extension = "."+mimetype.replace(/^(image\/)/i, "");
+
+            image.onload = function() {
+                sw = this.naturalWidth;
+                sh = this.naturalHeight;
+                dw = options.width ? options.width : sw;
+                dh = options.height ? options.height : sh;
+
+                switch(options.fit) {
+                    case "cover": sizes = fitToCoverSize(sw, sh, dw, dh); break;
+                    case "contain": sizes = fitToContainSize(sw, sh, dw, dh); break;
+                    case "auto": sizes = fitToAutoSize(sw, sh, dw, dh); break;
+                    default: sizes = fitToAutoSize(sw, sh, dw, dh);
+                }
+
+                canvas.width = Math.round(sizes.width);
+                canvas.height = Math.round(sizes.height);
+                ctx.drawImage(
+                    image,
+                    0, 0,
+                    sw, sh,
+                    0, 0,
+                    canvas.width, canvas.height
+                );
+                canvas.toBlob(function(blob) {
+                    self.set({
+                        blob: new File([blob], filename + extension, {
+                            type: blob.type
+                        }),
+                    });
+                    self.load(function(err, res) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        return cb(null, res);
+                    });
+                }, mimetype, quality);
+            }
+            image.onerror = function() {
+                return cb(new Error("Load error"));
+            }
+            image.src = this.src;
+        }
         this.filter = function() {}
         this.copy = function() {
             var keys = Object.keys(schema);
@@ -608,6 +622,8 @@
             }
             return output;
         }
+        this.lean = this.copy;
+        this.delete = this.remove;
 
         // set value
         this.index = images.length;
@@ -638,7 +654,7 @@
 
         // move index after insert Img instance
         if (!isUndefined(_index)) {
-            this.move(_index);
+            changeIndex(this, _index);
         }
     }
     
@@ -763,6 +779,97 @@
             case "error": return isError(value);
             default: return false;
         }
+    }
+    __methods.fitToCoverSize = function(sw, sh, dw, dh) {
+        var ar = sw / sh;
+        if (dh * ar < dw) {
+            return {
+                width: dw,
+                height: dw / ar
+            }
+        } else {
+            return {
+                width: dh * ar,
+                height: dh
+            }
+        }
+    }
+    __methods.fitToContainSize = function(sw, sh, dw, dh) {
+        var ar = sw / sh;
+        if (dh * ar < dw) {
+            return {
+                width: dh * ar,
+                height: dh
+            }
+        } else {
+            return {
+                width: dw,
+                height: dw / ar
+            }
+        }
+    }
+    __methods.fitToAutoSize = function(sw, sh, dw, dh) {
+        var fitToContainSize = __methods.fitToContainSize;
+        var fitToCoverSize = __methods.fitToCoverSize;
+        var mnw = dw > sw ? 0 : dw;
+        var mnh = dh > sh ? 0 : dh;
+        var mx = fitToContainSize(sw, sh, dw, dh);
+        var mn = fitToCoverSize(sw, sh, mnw, mnh);
+        return {
+            width: Math.min(mx.width, Math.max(mn.width, sw)),
+            height: Math.min(mx.height, Math.max(mn.height, sh)),
+        }
+    }
+    __methods.changeIndex = function(img, index) {
+        var isUndefined = __methods.isUndefined;
+        var isNumber = __methods.isNumber;
+        var isNumeric = __methods.isNumeric;
+        var images = __images;
+        var max = images.length - 1;
+        var min = 0;
+        var curr = img.index;
+        var len = images.length;
+        var i;
+        var nextSibling;
+        var prevSibling;
+        var image;
+
+        if (isNumeric(index)) {
+            index = parseInt(index, 10);
+        } else if (!isNumber(index)) {
+            throw new Error("Argument must be Number");
+        }
+        if (
+            index === curr ||
+            index > max ||
+            index < min
+        ) {
+            return false;
+        }
+        // remove
+        images.splice(curr, 1);
+        // insert
+        images.splice(index, 0, img);
+        // set index and siblings
+        i = Math.min(curr, index);
+        for (i; i < len; i++) {
+            image = images[i];
+            prevSibling = images[i-1];
+            nextSibling = images[i+1];
+
+            image.index = i;
+            image.prevSibling = prevSibling;
+            image.nextSibling = nextSibling;
+
+            if (!isUndefined(prevSibling)) {
+                prevSibling.nextSibling = image;
+            }
+            if (!isUndefined(nextSibling)) {
+                nextSibling.prevSibling = image;
+            }
+        }
+
+        return true;
     }
 
     // 

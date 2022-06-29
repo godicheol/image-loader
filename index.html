@@ -33,6 +33,7 @@
         <button id="move-1">Move</button>
         <button id="split-1">Split</button>
         <button id="change-1">Change</button>
+        <button id="resize-1">Resize</button>
         <!-- <button id="load-1">Load</button> -->
     </div>
 
@@ -92,7 +93,7 @@
         function moveImg() {
             if (curr) {
                 var index = parseInt(window.prompt("Index"), 10) - 1;
-                var res = curr.move(index);
+                var res = curr.set({index: index});
                 setTotal();
             }
         }
@@ -213,6 +214,21 @@
                 }
                 console.log(res);
             });
+        });
+        document.getElementById("resize-1").addEventListener("click", function(e) {
+            if (curr) {
+                curr.resize({
+                    width: 0.5 * curr.naturalWidth,
+                    height: 0.5 * curr.naturalHeight,
+                    fit: "cover"
+                }, function(err, res) {
+                    if (err) {
+                        console.error(err);
+                        return false;
+                    }
+                    console.log(res);
+                });
+            }
         });
         // document.getElementById("load-1").addEventListener("click", function(e) {
         //     if (curr) {

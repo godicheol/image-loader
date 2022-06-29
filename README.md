@@ -10,10 +10,12 @@ img.set(object) // set field value
 img.unset(object) // remove field 
 img.match(query)
 img.load(function(err, res) {}) 
+img.unload() // revoke object url 
 img.fetch(url, function(err, res) {}) // get blob from URL
-img.remove() // remove Img instance
-img.move(index) // move index
-img.copy() // remove reference
+img.remove(), img.delete() // remove Img instance
+img.copy(), img.lean() // remove reference
+img.split(rowsArray, colsArray) // create new files
+img.resize() // remove reference
 
 var query = {
     $and: [{
@@ -33,11 +35,13 @@ var query = {
 // $ne: string, number,
 // $gt, $gte, $lt, $lte: number
 
-Img.getOne(query);
-Img.getMany(query);
-Img.removeOne(query);
-Img.removeMany(query);
-Img.updateOne(query, object);
-Img.updateMany(query, object);
+Img.exist(query); // return Boolean
+Img.count(query); // return Number
+Img.getOne(query); // return Img
+Img.getMany(query); // return Object
+Img.removeOne(query); // return Img
+Img.removeMany(query); // return Object
+Img.updateOne(query, object); // return Img
+Img.updateMany(query, object); // return Object
 
 ```
