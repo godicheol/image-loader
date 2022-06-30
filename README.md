@@ -14,8 +14,8 @@ img.unload() // revoke object url
 img.fetch(url, function(err, res) {}) // get blob from URL
 img.remove(), img.delete() // remove Img instance
 img.copy(), img.lean() // remove reference
-img.split(rowsArray, colsArray) // create new files
-img.resize() // remove reference
+img.split(options) // create new files, {rows: Array, cols: Array, filename: String, quality: Number, mimetype: String}
+img.resize(options) // {width: Number, height: Number, fit: String(cover, contain, auto), filename: Stirng, quality: Number, mimetype: String}
 
 var query = {
     $and: [{
