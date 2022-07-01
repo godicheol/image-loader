@@ -1,7 +1,7 @@
 (function(global, factory) {
     if (typeof(define) === "function" && define.amd) {
         // AMD. Register as an anonymous module.
-        define(factory);
+        define([], factory);
     } else if (typeof(exports) !== "undefined" && typeof(exports.nodeName) !== 'string') {
         // CommonJS
         module.exports = factory();
