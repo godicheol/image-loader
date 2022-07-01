@@ -1,15 +1,15 @@
 (function(global, factory) {
     if (typeof(define) === "function" && define.amd) {
         // AMD. Register as an anonymous module.
-        define(["exports"], factory);
+        define(factory);
     } else if (typeof(exports) !== "undefined" && typeof(exports.nodeName) !== 'string') {
         // CommonJS
-        factory(exports);
+        module.exports = factory();
     } else {
         // Browser globals
-        factory(global);
+        global.Img = factory();
     }
-})(this, function(exports) {
+})(this, function() {
     'use strict'
 
     var __images = [];
@@ -1027,7 +1027,5 @@
         return output;
     }
 
-    if (typeof(exports.Img) === "undefined") {
-        exports.Img = Img;
-    }
+    return Img;
 });
